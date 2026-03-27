@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL — Anti-DDoS Intelligence Dashboard</title>
+<style>
+  :root {
+    --bg:      #080c10;
+    --bg2:     #0d1117;
+    --bg3:     #111820;
+    --border:  #1e2d3d;
+    --accent:  #00e5ff;
+    --green:   #00ff88;
+    --yellow:  #ffd600;
+    --orange:  #ff8800;
+    --red:     #ff3355;
+    --purple:  #c084fc;
+    --muted:   #4a6070;
+    --text:    #cdd9e5;
+    --text2:   #768d9e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', monospace; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+  /* Header */
+  header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.2em; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+  .ws-status { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text2); }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+  .ws-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .ws-dot.error { background: var(--red); }
+  .uptime { font-size: 0.75rem; color: var(--text2); }
+
+  /* Layout */
+  .main { padding: 20px 24px; display: grid; gap: 16px; }
+
+  /* Stat cards */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
+  .stat-card.red::before    { background: var(--red); }
+  .stat-card.orange::before { background: var(--orange); }
+  .stat-card.green::before  { background: var(--green); }
+  .stat-card.purple::before { background: var(--purple); }
+  .stat-card.yellow::before { background: var(--yellow); }
+  .stat-val { font-size: 2rem; font-weight: bold; color: var(--accent); line-height: 1; }
+  .stat-card.red    .stat-val { color: var(--red); }
+  .stat-card.orange .stat-val { color: var(--orange); }
+  .stat-card.green  .stat-val { color: var(--green); }
+  .stat-card.purple .stat-val { color: var(--purple); }
+  .stat-card.yellow .stat-val { color: var(--yellow); }
+  .stat-lbl { font-size: 0.7rem; color: var(--text2); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .stat-sub { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  /* Grid panels */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 1100px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 760px)  { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text2); }
+  .badge { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 2px 7px; font-size: 0.7rem; color: var(--accent); }
+  .panel-body { padding: 12px 14px; }
+
+  /* Sparkline */
+  #sparkline-wrap { padding: 8px 14px 12px; }
+  canvas#sparkline { width: 100%; height: 60px; display: block; }
+
+  /* Tables */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .data-table th { color: var(--text2); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border); font-weight: normal; }
+  .data-table td { padding: 5px 8px; border-bottom: 1px solid #151e28; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg3); }
+
+  .ip { color: var(--accent); font-family: monospace; }
+  .verdict-bot     { color: var(--red); font-weight: bold; }
+  .verdict-suspect { color: var(--orange); }
+  .verdict-human   { color: var(--green); }
+  .verdict-pending { color: var(--muted); }
+
+  .score-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .score-bar { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .score-num { font-size: 0.7rem; color: var(--text2); min-width: 28px; text-align: right; }
+
+  /* Event log */
+  #event-log { height: 220px; overflow-y: auto; font-size: 0.73rem; line-height: 1.7; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .ev { display: flex; gap: 8px; padding: 1px 0; }
+  .ev-ts { color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+  .ev-tag { border-radius: 3px; padding: 0 5px; font-size: 0.65rem; font-weight: bold; white-space: nowrap; align-self: center; flex-shrink: 0; }
+  .ev-tag.block     { background: #3d1020; color: var(--red); }
+  .ev-tag.honeypot  { background: #2d1040; color: var(--purple); }
+  .ev-tag.threat    { background: #3d2000; color: var(--orange); }
+  .ev-tag.log       { background: #0d1a20; color: var(--text2); }
+  .ev-tag.challenge { background: #102030; color: var(--accent); }
+  .ev-msg { color: var(--text); word-break: break-all; }
+
+  /* Honeypot */
+  .trap-grid { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+  .trap-pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 3px 8px; font-size: 0.68rem; color: var(--muted); font-family: monospace; transition: border-color 0.3s, color 0.3s; }
+  .trap-pill.hit { border-color: var(--purple); color: var(--purple); }
+
+  /* Mini stats */
+  .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mini-stat { background: var(--bg3); border-radius: 4px; padding: 8px 10px; }
+  .mini-stat .v { font-size: 1.3rem; font-weight: bold; color: var(--accent); }
+  .mini-stat .l { font-size: 0.68rem; color: var(--text2); margin-top: 2px; }
+
+  /* Economics */
+  .burn-rate { font-size: 1.6rem; font-weight: bold; color: var(--yellow); margin: 4px 0; }
+  .burn-label { font-size: 0.7rem; color: var(--text2); }
+  .economics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .eco-stat { background: var(--bg3); border-radius: 4px; padding: 8px; }
+  .eco-stat .v { font-size: 1.1rem; font-weight: bold; color: var(--green); }
+  .eco-stat .l { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+
+  /* Contagion */
+  .graph-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .graph-stat { background: var(--bg3); border-radius: 4px; padding: 6px 10px; flex: 1; min-width: 80px; }
+  .graph-stat .v { font-size: 1.1rem; font-weight: bold; color: var(--purple); }
+  .graph-stat .l { font-size: 0.65rem; color: var(--muted); }
+
+  /* Controls */
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--border); }
+  .ctrl-input { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 5px 10px; color: var(--text); font-family: monospace; font-size: 0.8rem; outline: none; flex: 1; min-width: 120px; }
+  .ctrl-input:focus { border-color: var(--accent); }
+  .btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 5px 12px; color: var(--text); font-family: monospace; font-size: 0.8rem; cursor: pointer; transition: border-color 0.2s, color 0.2s; white-space: nowrap; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.red:hover   { border-color: var(--red);   color: var(--red); }
+  .btn.green:hover { border-color: var(--green); color: var(--green); }
+
+  /* Attack banner */
+  .attack-banner { background: #3d0010; border: 1px solid var(--red); border-radius: 5px; padding: 10px 16px; display: none; align-items: center; gap: 12px; font-size: 0.85rem; color: var(--red); }
+  .attack-banner.visible { display: flex; }
+  .attack-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: pulse 1s ease-in-out infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(1.4); } }
+
+  .empty { color: var(--muted); font-size: 0.78rem; padding: 12px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ SENTINEL <span style="color:var(--muted);font-size:0.7rem;letter-spacing:0.05em">ANTI-DDOS INTELLIGENCE</span></div>
+  <div style="display:flex;align-items:center;gap:20px">
+    <span class="uptime" id="uptime-display">up 0s</span>
+    <div class="ws-status">
+      <div class="ws-dot" id="ws-dot"></div>
+      <span id="ws-label">connecting…</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="attack-banner" id="attack-banner">
+    <div class="attack-pulse"></div>
+    <span>⚠ ELEVATED TRAFFIC — possible attack in progress</span>
+    <span id="attack-rps" style="margin-left:auto;font-weight:bold"></span>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-val" id="s-rps">0.0</div>
+      <div class="stat-lbl">Requests / sec</div>
+      <div class="stat-sub" id="s-total">0 total</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-val" id="s-blocked-ips">0</div>
+      <div class="stat-lbl">Blocked IPs</div>
+      <div class="stat-sub" id="s-blocked-req">0 req blocked</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-val" id="s-bots">0</div>
+      <div class="stat-lbl">Bot Profiles</div>
+      <div class="stat-sub" id="s-suspects">0 suspects</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-val" id="s-honeypot">0</div>
+      <div class="stat-lbl">Honeypot Hits</div>
+      <div class="stat-sub">trap triggers</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-val" id="s-challenges">0</div>
+      <div class="stat-lbl">Challenges</div>
+      <div class="stat-sub" id="s-ch-solved">0 solved</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-val" id="s-allowed">0</div>
+      <div class="stat-lbl">Allowed Req</div>
+      <div class="stat-sub" id="s-allow-pct">— pass rate</div>
+    </div>
+  </div>
+
+  <!-- Sparkline + Event log -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <span>Requests / sec — 60s window</span>
+        <span class="badge" id="rps-badge">0.0 rps</span>
+      </div>
+      <div id="sparkline-wrap"><canvas id="sparkline" height="60"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span>Live Event Stream</span>
+        <span class="badge" id="ev-count">0 events</span>
+      </div>
+      <div class="panel-body" style="padding:8px 10px">
+        <div id="event-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fingerprints + Blocked IPs -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <span>Behavioral Fingerprints</span>
+        <span class="badge" id="fp-badge">0 profiles</span>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <table class="data-table">
+          <thead><tr><th>IP</th><th>Verdict</th><th>Entropy (0–7)</th><th>Reqs</th></tr></thead>
+          <tbody id="fp-table"><tr><td colspan="4" class="empty">No profiles yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span>Blocked IPs</span>
+        <span class="badge" id="blocked-badge">0</span>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <table class="data-table">
+          <thead><tr><th>IP</th><th>Violations</th><th>Expires</th><th></th></tr></thead>
+          <tbody id="blocked-table"><tr><td colspan="4" class="empty">No blocked IPs</td></tr></tbody>
+        </table>
+      </div>
+      <div class="controls">
+        <input class="ctrl-input" id="block-ip-input" placeholder="IP address…" />
+        <button class="btn red" onclick="manualBlock()">Block 1h</button>
+        <button class="btn green" onclick="manualUnblock()">Unblock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Honeypots + Challenges + Economics -->
+  <div class="grid-3">
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>Honeypot Trap Grid</span>
+        <span class="badge" id="trap-badge">0 traps</span>
+      </div>
+      <div class="panel-body">
+        <div id="trap-grid" class="trap-grid"></div>
+        <div style="margin-top:10px;font-size:0.7rem;color:var(--text2)">
+          Caught IPs: <span id="caught-count" style="color:var(--purple)">0</span>
+          &nbsp;·&nbsp; Hits: <span id="hit-count" style="color:var(--purple)">0</span>
+          &nbsp;·&nbsp; Rotations: <span id="rotation-count" style="color:var(--muted)">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>SHA-256 PoW Challenges</span>
+        <span class="badge">difficulty 1–5</span>
+      </div>
+      <div class="panel-body">
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="v" id="pow-issued">0</div><div class="l">Issued</div></div>
+          <div class="mini-stat"><div class="v" id="pow-solved" style="color:var(--green)">0</div><div class="l">Solved</div></div>
+          <div class="mini-stat"><div class="v" id="pow-failed" style="color:var(--red)">0</div><div class="l">Failed</div></div>
+          <div class="mini-stat"><div class="v" id="pow-expired" style="color:var(--muted)">0</div><div class="l">Expired</div></div>
+        </div>
+        <div style="margin-top:10px;font-size:0.7rem;color:var(--text2)">
+          Pending tokens: <span id="pow-pending" style="color:var(--accent)">0</span>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <input class="ctrl-input" id="challenge-ip" placeholder="Target IP…" />
+          <button class="btn" onclick="issueChallenge()">Issue Challenge</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>Attacker Economics</span>
+        <span class="badge" id="econ-badge">live</span>
+      </div>
+      <div class="panel-body">
+        <div class="burn-label">Estimated attacker burn rate</div>
+        <div class="burn-rate" id="burn-rate">$0.00/hr</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-bottom:8px">Pain threshold: $500/hr — botnet operators typically quit above this</div>
+        <div class="economics-grid">
+          <div class="eco-stat"><div class="v" id="eco-total-cost">$0.0000</div><div class="l">Total attacker cost</div></div>
+          <div class="eco-stat"><div class="v" id="eco-hashes" style="color:var(--yellow)">0</div><div class="l">Compute wasted (hashes)</div></div>
+        </div>
+        <div id="eco-viable" style="margin-top:10px;font-size:0.72rem;color:var(--muted)">Status: monitoring</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Contagion graph -->
+  <div class="panel">
+    <div class="panel-header">
+      <span>Behavioral Contagion Graph</span>
+      <span class="badge" id="cg-badge">0 nodes</span>
+    </div>
+    <div class="panel-body">
+      <div class="graph-stats">
+        <div class="graph-stat"><div class="v" id="cg-nodes">0</div><div class="l">Nodes</div></div>
+        <div class="graph-stat"><div class="v" id="cg-edges">0</div><div class="l">Edges</div></div>
+        <div class="graph-stat"><div class="v" id="cg-bots">0</div><div class="l">Confirmed bots</div></div>
+        <div class="graph-stat"><div class="v" id="cg-flagged" style="color:var(--orange)">0</div><div class="l">Contagion-flagged</div></div>
+        <div class="graph-stat"><div class="v" id="cg-clusters" style="color:var(--red)">0</div><div class="l">Bot clusters</div></div>
+        <div class="graph-stat"><div class="v" id="cg-events">0</div><div class="l">Contagion events</div></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Flagged IP</th><th>Score</th><th>Reason</th><th>Age</th></tr></thead>
+        <tbody id="cg-flag-table"><tr><td colspan="4" class="empty">No contagion flags yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──
+const sparkData = new Array(60).fill(0);
+let evCount = 0;
+const hitPaths = new Set();
+let lastPoll = 0;
+
+// ── WebSocket ──
+let ws;
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => setWS('connected', 'live');
+  ws.onclose = () => { setWS('error', 'reconnecting…'); setTimeout(connect, 3000); };
+  ws.onerror = () => setWS('error', 'error');
+  ws.onmessage = ({ data }) => {
+    try { route(JSON.parse(data)); } catch(e) {}
+  };
+}
+function setWS(cls, label) {
+  document.getElementById('ws-dot').className = 'ws-dot ' + cls;
+  document.getElementById('ws-label').textContent = label;
+}
+
+// ── Message router ──
+function route(msg) {
+  switch (msg.type) {
+    case 'init':
+      applyStats(msg.stats);
+      if (msg.blocked)       renderBlocked(msg.blocked);
+      if (msg.honeypotStats) renderHoneypotStats(msg.honeypotStats);
+      if (msg.challengeStats) renderChallengeStats(msg.challengeStats);
+      if (msg.trapPaths)     renderTraps(msg.trapPaths);
+      if (msg.bots || msg.suspects)
+        renderProfiles([...(msg.bots||[]), ...(msg.suspects||[])]);
+      break;
+    case 'stats':
+      applyStats(msg);
+      pushSpark(msg.reqPerSec || 0);
+      break;
+    case 'block':
+      logEvent('block', msg.ip, `Blocked ${msg.durationSecs}s — ${msg.reason||''}`);
+      break;
+    case 'honeypot':
+      logEvent('honeypot', msg.ip, `Hit trap: ${msg.path}`);
+      hitPaths.add(msg.path);
+      markTrapHit(msg.path);
+      break;
+    case 'threat':
+      logEvent('threat', msg.ip, `[${(msg.severity||'').toUpperCase()}] ${msg.reason||''}`);
+      break;
+    case 'challenge_issued':
+      logEvent('challenge', msg.ip, 'PoW challenge issued');
+      break;
+    case 'challenge_solved':
+      logEvent('challenge', msg.ip, 'PoW solved');
+      break;
+    case 'log':
+      logEvent('log', msg.level||'INFO', msg.message||'');
+      break;
+  }
+}
+
+// ── Stats ──
+function applyStats(s) {
+  if (!s) return;
+  set('s-rps', fmt(s.reqPerSec));
+  set('rps-badge', `${fmt(s.reqPerSec)} rps`);
+  set('s-total', `${fmtN(s.totalRequests||0)} total`);
+  set('s-blocked-ips', s.blockedIPCount||0);
+  set('s-blocked-req', `${fmtN(s.blockedRequests||0)} req blocked`);
+  set('s-bots', s.botProfiles||0);
+  set('s-suspects', `${s.suspectProfiles||0} suspects`);
+  set('s-honeypot', s.honeypotHits||0);
+  set('s-allowed', fmtN(s.allowedRequests||0));
+  const pct = (s.totalRequests||0) > 0
+    ? Math.round((s.allowedRequests||0)/(s.totalRequests||1)*100) : 100;
+  set('s-allow-pct', `${pct}% pass rate`);
+  if (s.uptime !== undefined) set('uptime-display', 'up ' + fmtUptime(s.uptime));
+
+  const banner = document.getElementById('attack-banner');
+  if ((s.reqPerSec||0) > 20 || (s.blockedIPCount||0) > 5) {
+    banner.classList.add('visible');
+    set('attack-rps', `${fmt(s.reqPerSec)} rps`);
+  } else {
+    banner.classList.remove('visible');
+  }
+  if (s.challengeStats) {
+    renderChallengeStats(s.challengeStats);
+    set('s-challenges', s.challengeStats.issued||0);
+    set('s-ch-solved', `${s.challengeStats.solved||0} solved`);
+  }
+  pollRich();
+}
+
+// ── Poll endpoints ──
+function pollRich() {
+  const now = Date.now();
+  if (now - lastPoll < 4000) return;
+  lastPoll = now;
+
+  fetch('/sentinel/stats').then(r=>r.json()).then(d => {
+    if (d.blocked)     renderBlocked(d.blocked);
+    if (d.topSuspects) renderProfiles(d.topSuspects);
+    if (d.honeypot)    renderHoneypotStats(d.honeypot);
+    if (d.challenges)  renderChallengeStats(d.challenges);
+  }).catch(()=>{});
+
+  fetch('/sentinel/traps').then(r=>r.json()).then(d => {
+    if (d.traps) renderTraps(d.traps);
+    if (d.stats) renderHoneypotStats(d.stats);
+  }).catch(()=>{});
+
+  fetch('/sentinel/contagion').then(r=>r.json()).then(renderContagion).catch(()=>{});
+  fetch('/sentinel/economics').then(r=>r.json()).then(renderEconomics).catch(()=>{});
+}
+
+// ── Renderers ──
+function renderBlocked(list) {
+  set('blocked-badge', list.length);
+  const tbody = document.getElementById('blocked-table');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No blocked IPs</td></tr>'; return; }
+  tbody.innerHTML = list.slice(0,14).map(b => {
+    const exp = b.until ? new Date(b.until).toLocaleTimeString() : '—';
+    return `<tr>
+      <td class="ip">${esc(b.ip)}</td>
+      <td style="color:var(--orange)">${b.violations||0}</td>
+      <td style="color:var(--text2)">${exp}</td>
+      <td><button class="btn" style="padding:2px 8px;font-size:0.68rem" onclick="unblockIP('${esc(b.ip)}')">↩</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderProfiles(list) {
+  set('fp-badge', `${list.length} profiles`);
+  const tbody = document.getElementById('fp-table');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No profiles yet</td></tr>'; return; }
+  tbody.innerHTML = list.slice(0,16).map(p => {
+    const score = p.score;
+    const pct = score != null ? Math.min(100, (score/7)*100) : 0;
+    const col = score == null ? 'var(--muted)' :
+                score < 3.0 ? 'var(--red)' :
+                score < 5.5 ? 'var(--orange)' : 'var(--green)';
+    return `<tr>
+      <td class="ip">${esc(p.ip)}</td>
+      <td class="verdict-${p.verdict||'pending'}">${p.verdict||'pending'}</td>
+      <td><div class="score-bar-wrap">
+        <div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span class="score-num">${score != null ? score.toFixed(1) : '—'}</span>
+      </div></td>
+      <td style="color:var(--text2)">${p.requestCount||0}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTraps(paths) {
+  set('trap-badge', `${paths.length} traps`);
+  document.getElementById('trap-grid').innerHTML = paths.map(p =>
+    `<span class="trap-pill${hitPaths.has(p)?' hit':''}" title="${esc(p)}">${esc(trunc(p,22))}</span>`
+  ).join('');
+}
+
+function markTrapHit(path) {
+  document.querySelectorAll('.trap-pill').forEach(el => {
+    if (el.title === path) el.classList.add('hit');
+  });
+}
+
+function renderHoneypotStats(s) {
+  set('caught-count', s.caughtCount||0);
+  set('hit-count', s.totalHits||0);
+  set('rotation-count', s.rotations||0);
+}
+
+function renderChallengeStats(s) {
+  set('pow-issued', s.issued||0);
+  set('pow-solved', s.solved||0);
+  set('pow-failed', s.failed||0);
+  set('pow-expired', s.expired||0);
+  set('pow-pending', s.pendingCount||0);
+}
+
+function renderContagion(d) {
+  if (!d) return;
+  const gs = d.graphStats || {};
+  set('cg-badge', `${gs.totalNodes||0} nodes`);
+  set('cg-nodes',   gs.totalNodes||0);
+  set('cg-edges',   gs.totalEdges||0);
+  set('cg-bots',    gs.confirmedBots||0);
+  set('cg-flagged', gs.contagionFlagged||0);
+  set('cg-clusters',gs.clusters||0);
+  set('cg-events',  gs.contagionEvents||0);
+
+  const flags = d.contagionFlags || [];
+  const tbody = document.getElementById('cg-flag-table');
+  if (!flags.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No contagion flags yet</td></tr>'; return; }
+  tbody.innerHTML = flags.slice(0,10).map(f => {
+    const ago = Math.floor((Date.now()-f.ts)/1000);
+    return `<tr>
+      <td class="ip">${esc(f.ip)}</td>
+      <td style="color:var(--orange)">${typeof f.score==='number'?f.score.toFixed(2):f.score}</td>
+      <td style="color:var(--text2);font-size:0.72rem">${esc(f.reason||'')}</td>
+      <td style="color:var(--muted)">${ago}s ago</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderEconomics(d) {
+  if (!d?.global) return;
+  const g = d.global;
+  const burn = g.estimatedAttackerBurnRatePerHour||0;
+  set('burn-rate', `$${burn.toFixed(2)}/hr`);
+  set('eco-total-cost', `$${(g.estimatedAttackerCostUSD||0).toFixed(4)}`);
+  set('eco-hashes', fmtN(g.totalComputeWastedByAttacker||0));
+  set('econ-badge', burn > 0 ? `$${burn.toFixed(2)}/hr` : 'live');
+
+  const el = document.getElementById('eco-viable');
+  if (g.attackEconomicallyUnviable) {
+    el.innerHTML = '<span style="color:var(--green)">✓ Attack economically unviable — burn rate exceeds $500/hr</span>';
+  } else if (burn > 0) {
+    el.innerHTML = `<span style="color:var(--yellow)">${((burn/500)*100).toFixed(1)}% of pain threshold reached</span>`;
+  } else {
+    el.textContent = 'Status: monitoring';
+  }
+}
+
+// ── Event log ──
+function logEvent(type, label, msg) {
+  evCount++;
+  set('ev-count', `${evCount} events`);
+  const el = document.createElement('div');
+  el.className = 'ev';
+  el.innerHTML = `<span class="ev-ts">${new Date().toLocaleTimeString()}</span>`
+    + `<span class="ev-tag ${type}">${type.toUpperCase()}</span>`
+    + `<span class="ev-msg"><span class="ip">${esc(String(label))}</span> ${esc(msg)}</span>`;
+  const log = document.getElementById('event-log');
+  log.prepend(el);
+  while (log.children.length > 150) log.lastChild.remove();
+}
+
+// ── Sparkline ──
+const canvas = document.getElementById('sparkline');
+const ctx = canvas.getContext('2d');
+
+function pushSpark(val) {
+  sparkData.push(val); if (sparkData.length > 60) sparkData.shift();
+  drawSpark();
+}
+function drawSpark() {
+  const W = canvas.parentElement.clientWidth || 400;
+  const H = 60;
+  canvas.width = W; canvas.height = H;
+  const max = Math.max(1, ...sparkData);
+  const step = W / (sparkData.length - 1);
+  ctx.clearRect(0,0,W,H);
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(0,229,255,0.25)');
+  grad.addColorStop(1,'rgba(0,229,255,0)');
+  ctx.beginPath();
+  ctx.moveTo(0,H);
+  sparkData.forEach((v,i) => ctx.lineTo(i*step, H - (v/max)*(H-4)));
+  ctx.lineTo(W,H); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath();
+  sparkData.forEach((v,i) => {
+    const y = H - (v/max)*(H-4);
+    i===0 ? ctx.moveTo(0,y) : ctx.lineTo(i*step,y);
+  });
+  ctx.strokeStyle='#00e5ff'; ctx.lineWidth=1.5; ctx.stroke();
+  // Attack threshold
+  const ty = H - (20/max)*(H-4);
+  if (ty>2 && ty<H-2) {
+    ctx.beginPath(); ctx.setLineDash([4,4]);
+    ctx.moveTo(0,ty); ctx.lineTo(W,ty);
+    ctx.strokeStyle='rgba(255,51,85,0.35)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ── Manual controls ──
+function manualBlock() {
+  const ip = document.getElementById('block-ip-input').value.trim();
+  if (!ip) return;
+  const headers = {'Content-Type':'application/json'};
+  if (window.SENTINEL_CSRF_TOKEN) headers['X-CSRF-Token'] = window.SENTINEL_CSRF_TOKEN;
+  fetch('/sentinel/block',{ method:'POST', headers, body:JSON.stringify({ip,durationMs:3600000}) })
+    .then(()=>{ document.getElementById('block-ip-input').value=''; logEvent('block',ip,'Manual block 1h via dashboard'); setTimeout(pollRich,600); })
+    .catch(err => { logEvent('log','ERROR',`Block failed: ${err.message}`); });
+}
+function manualUnblock() {
+  const ip = document.getElementById('block-ip-input').value.trim();
+  if (!ip) return;
+  unblockIP(ip);
+  document.getElementById('block-ip-input').value='';
+}
+function unblockIP(ip) {
+  const headers = {'Content-Type':'application/json'};
+  if (window.SENTINEL_CSRF_TOKEN) headers['X-CSRF-Token'] = window.SENTINEL_CSRF_TOKEN;
+  fetch('/sentinel/unblock',{ method:'POST', headers, body:JSON.stringify({ip}) })
+    .then(()=>{ logEvent('log',ip,'Manually unblocked'); setTimeout(pollRich,600); })
+    .catch(err => { logEvent('log','ERROR',`Unblock failed: ${err.message}`); });
+}
+function issueChallenge() {
+  const ip = document.getElementById('challenge-ip').value.trim();
+  if (!ip) return;
+  const headers = {'Content-Type':'application/json'};
+  if (window.SENTINEL_CSRF_TOKEN) headers['X-CSRF-Token'] = window.SENTINEL_CSRF_TOKEN;
+  fetch('/sentinel/challenge',{ method:'POST', headers, body:JSON.stringify({ip,difficulty:3}) })
+    .then(r=>r.json()).then(d=>{ logEvent('challenge',ip,`PoW issued — ${d.token||'error'}`); document.getElementById('challenge-ip').value=''; })
+    .catch(err => { logEvent('log','ERROR',`Challenge failed: ${err.message}`); });
+}
+
+// ── Helpers ──
+const set   = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+const fmt   = n => typeof n==='number' ? n.toFixed(1) : '0.0';
+const fmtN  = n => n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':String(n);
+const trunc = (s,n) => s.length>n ? s.slice(0,n-1)+'…' : s;
+const esc   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmtUptime = s => s<60?`${s}s`:s<3600?`${Math.floor(s/60)}m ${s%60}s`:`${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`;
+
+// ── Boot ──
+drawSpark();
+connect();
+window.addEventListener('resize', drawSpark);
+</script>
+</body>
+</html>

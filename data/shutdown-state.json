@@ -1,0 +1,21 @@
+{
+  "timestamp": 1774569223518,
+  "shutdownReason": "graceful",
+  "blockedIPs": [],
+  "confirmedBots": [],
+  "blockchain": [
+    {
+      "index": 0,
+      "timestamp": 1774569212486,
+      "threats": [],
+      "previousHash": "0",
+      "hash": "b011d0c927ec579676f91acd9015941fb4a902e50793d10ed21fc9092cd9ca7c",
+      "nonce": 0
+    }
+  ],
+  "stats": {
+    "totalRequests": 0,
+    "blockedRequests": 0,
+    "uptime": 11.2966813
+  }
+}
