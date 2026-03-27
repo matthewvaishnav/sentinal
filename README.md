@@ -430,8 +430,8 @@ If you use SENTINEL in research, please cite:
 ```bibtex
 @software{sentinel2024,
   title={SENTINEL: Adaptive Multi-Layer DDoS Protection with Behavioral Contagion},
-  author={[Your Name]},
+  author={[Matthew Vaishnav]},
   year={2024},
-  url={https://github.com/yourusername/sentinel}
+  url={https://github.com/matthewvaishnav/sentinal}
 }
 ```
