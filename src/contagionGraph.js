@@ -32,7 +32,7 @@ const LSHIndex = require('./lshIndex');
 
 class BehavioralContagionGraph {
   constructor({
-    similarityThreshold = 0.75,
+    similarityThreshold = 0.8,
     contagionThreshold = 0.85,
     clusterSuspicionMultiplier = 3,
     maxNodes = 10000,
@@ -70,7 +70,10 @@ class BehavioralContagionGraph {
     };
 
     // Periodic cleanup
-    setInterval(() => this._cleanup(), 300000); // Every 5 minutes
+    this.cleanupInterval = setInterval(() => this._cleanup(), 300000); // Every 5 minutes
+    if (this.cleanupInterval && typeof this.cleanupInterval.unref === 'function') {
+      this.cleanupInterval.unref();
+    }
   }
 
   update(ip, behaviorData) {
@@ -174,6 +177,14 @@ class BehavioralContagionGraph {
     };
   }
 
+  confirmBot(ip) {
+    return this.markAsBot(ip);
+  }
+
+  getSuspicionScore(ip) {
+    return this._computeContagionScore(ip);
+  }
+
   markAsBot(ip) {
     this.confirmedBots.add(ip);
 
@@ -231,12 +242,12 @@ class BehavioralContagionGraph {
 
   _extractVector(data) {
     return {
-      timingCV: data.timingCV || 0,
-      uaEntropy: Math.min(1, (data.uaEntropy || 0) / 5),
-      pathDiversity: data.pathDiversity || 0,
-      headerCompleteness: data.headerCompleteness || 0,
-      normalizedRate: Math.min(1, (data.reqPerSec || 0) / 100),
-      methodVariety: data.methodVariety || 0,
+      timingCV: Math.min(1, Math.max(0, data.timingCV || 0)),
+      uaEntropy: Math.min(1, Math.max(0, (data.uaEntropy || 0) / 10)),
+      pathDiversity: Math.min(1, Math.max(0, (data.pathDiversity || 0) / 5)),
+      headerCompleteness: Math.min(1, Math.max(0, (data.headerCount || 0) / 20)),
+      normalizedRate: Math.min(1, Math.max(0, data.acceptLangRate || 0)),
+      methodVariety: Math.min(1, Math.max(0, (data.methodVariety || 0) / 5)),
       hasReferer: data.hasReferer ? 1 : 0,
     };
   }
@@ -284,10 +295,10 @@ class BehavioralContagionGraph {
     const visited = new Set();
     const clusters = [];
 
-    for (const ip of this.confirmedBots) {
+    for (const ip of this.vectors.keys()) {
       if (visited.has(ip)) continue;
       const component = this._getConnectedComponent(ip);
-      component.forEach(ip => visited.add(ip));
+      component.forEach(node => visited.add(node));
       if (component.size >= 2) {
         const botCount = [...component].filter(i => this.confirmedBots.has(i)).length;
         clusters.push({
@@ -321,6 +332,13 @@ class BehavioralContagionGraph {
 
   getContagionFlags() {
     return [...this.contagionFlags.entries()].map(([ip, flag]) => ({ ip, ...flag }));
+  }
+
+  stop() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   _cleanup() {

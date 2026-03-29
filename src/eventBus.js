@@ -121,6 +121,10 @@ class EventBus {
   getRecentEvents(limit = 50) {
     return this.recentEvents.slice(-limit);
   }
+
+  getClientCount() {
+    return this.clients.size;
+  }
 }
 
 // Singleton — one bus for the whole process

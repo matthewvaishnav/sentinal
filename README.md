@@ -76,6 +76,12 @@ SENTINEL introduces **6 novel techniques** not found in commercial solutions:
 
 See [COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) for detailed comparison vs. Cloudflare, Imperva, Fail2ban, and others.
 
+## Badges
+
+![Build status](https://img.shields.io/github/actions/workflow/status/example/sentinel/ci.yml?style=flat-square)
+![Coverage](https://img.shields.io/codecov/c/github/example/sentinel?style=flat-square)
+![CII Best Practices](https://img.shields.io/badge/CII-Best%20Practices-blue?style=flat-square)
+
 ## Features
 
 ### Core Protection Layers

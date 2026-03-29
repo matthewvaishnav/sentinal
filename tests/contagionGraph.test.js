@@ -6,6 +6,10 @@ describe('BehavioralContagionGraph', () => {
   beforeEach(() => {
     graph = new BehavioralContagionGraph();
   });
+
+  afterEach(() => {
+    graph.stop();
+  });
   
   describe('update()', () => {
     test('adds new IP to graph', () => {

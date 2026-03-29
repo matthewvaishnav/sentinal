@@ -10,6 +10,10 @@ describe('RateLimiter', () => {
       blockDurationMs: 5000
     });
   });
+
+  afterEach(() => {
+    limiter.stop();
+  });
   
   describe('check()', () => {
     test('allows requests under limit', () => {

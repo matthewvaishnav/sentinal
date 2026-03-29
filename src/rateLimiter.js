@@ -11,7 +11,10 @@ class SlidingWindowLimiter {
     // Map<ip, { timestamps: number[], blocked: number|null, violations: number }>
     this.store = new Map();
     // Cleanup old entries every 30s
-    setInterval(() => this._cleanup(), 30000);
+    this.cleanupInterval = setInterval(() => this._cleanup(), 30000);
+    if (this.cleanupInterval && typeof this.cleanupInterval.unref === 'function') {
+      this.cleanupInterval.unref();
+    }
   }
 
   check(ip) {
@@ -116,6 +119,13 @@ class SlidingWindowLimiter {
       });
     }
     return result.sort((a, b) => b.recentRequests - a.recentRequests);
+  }
+
+  stop() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   _cleanup() {

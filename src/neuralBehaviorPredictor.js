@@ -15,7 +15,7 @@
  */
 
 class NeuralBehaviorPredictor {
-  constructor({ inputDim = 12, hiddenDim = 24, learningRate = 0.01 } = {}) {
+  constructor({ inputDim = 7, hiddenDim = 24, learningRate = 0.01 } = {}) {
     this.inputDim = inputDim;
     this.hiddenDim = hiddenDim;
     this.learningRate = learningRate;
@@ -27,21 +27,45 @@ class NeuralBehaviorPredictor {
     this.b2 = [Math.random() - 0.5];
     
     this.predictions = new Map();
-    this.stats = { predictions: 0, correct: 0, accuracy: 0 };
+    this.stats = {
+      predictions: 0,
+      correct: 0,
+      accuracy: 0,
+      totalPredictions: 0,
+      totalLearned: 0,
+      totalConfidence: 0,
+      avgConfidence: 0,
+    };
+
+    this.learnedBotCount = 0;
+    this.learnedHumanCount = 0;
+    this.meanBot = new Array(this.inputDim).fill(0);
+    this.meanHuman = new Array(this.inputDim).fill(0);
   }
 
   predict(ip, features) {
     const x = this._normalizeFeatures(features);
     const hidden = this._relu(this._matmul(x, this.W1).map((v, i) => v + this.b1[i]));
-    const output = this._sigmoid(this._dot(hidden, this.W2.map(w => w[0])) + this.b2[0]);
+    let output = this._sigmoid(this._dot(hidden, this.W2.map(w => w[0])) + this.b2[0]);
 
-    
+    if (this.learnedBotCount > 0 && this.learnedHumanCount > 0) {
+      const dist = (vector, center) => Math.sqrt(vector.reduce((sum, v, i) => sum + Math.pow(v - center[i], 2), 0));
+      const dBot = dist(x, this.meanBot);
+      const dHuman = dist(x, this.meanHuman);
+      const centroidProb = 1 / (1 + Math.exp(dBot - dHuman));
+      output = 0.5 * output + 0.5 * centroidProb;
+    }
+
+    const confidence = Math.abs(output - 0.5) * 2;
     this.predictions.set(ip, { score: output, features: x, ts: Date.now() });
     this.stats.predictions++;
-    
+    this.stats.totalPredictions++;
+    this.stats.totalConfidence += confidence;
+    this.stats.avgConfidence = this.stats.totalConfidence / this.stats.totalPredictions;
+
     return {
       botProbability: output,
-      confidence: Math.abs(output - 0.5) * 2,
+      confidence,
       verdict: output > 0.5 ? 'bot' : 'human',
     };
   }
@@ -99,11 +123,25 @@ class NeuralBehaviorPredictor {
     // Update b2 (output bias)
     this.b2[0] -= this.learningRate * dL_db2;
     
-    // Track accuracy
+    // Track accuracy and learned count
+    this.stats.totalLearned++;
     if ((output > 0.5 && isBot) || (output <= 0.5 && !isBot)) {
       this.stats.correct++;
     }
-    this.stats.accuracy = this.stats.correct / this.stats.predictions;
+    this.stats.accuracy = this.stats.correct / (this.stats.totalPredictions || 1);
+
+    // Update learned centroids for boosted separation
+    if (isBot) {
+      this.learnedBotCount++;
+      for (let i = 0; i < x.length; i++) {
+        this.meanBot[i] = ((this.meanBot[i] * (this.learnedBotCount - 1)) + x[i]) / this.learnedBotCount;
+      }
+    } else {
+      this.learnedHumanCount++;
+      for (let i = 0; i < x.length; i++) {
+        this.meanHuman[i] = ((this.meanHuman[i] * (this.learnedHumanCount - 1)) + x[i]) / this.learnedHumanCount;
+      }
+    }
   }
 
   _normalizeFeatures(features) {

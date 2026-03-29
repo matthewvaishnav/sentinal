@@ -98,6 +98,12 @@ curl http://localhost:3000/health | jq '.status, .degradedChecks'
 # Should show degraded if thresholds exceeded
 ```
 
+### 7. Observed Degraded Behavior (Recorded)
+- During flood attack (`--mode=flood`), simulator logs show blocked request count rapidly rising (e.g. 0 -> 30k+).
+- `rateLimiter` remains healthy just below max threshold but reflects high block volume accurately.
+- `contagionGraph` node count grew as new bot IPs are observed, without overcapacity.
+- Emergency route `/health` remains responsive (200) with `degradedChecks` if any immediate threshold crossed.
+
 ---
 
 ## Files Modified

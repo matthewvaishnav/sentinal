@@ -1,21 +1,21 @@
 {
-  "timestamp": 1774569223518,
+  "timestamp": 1774815741021,
   "shutdownReason": "graceful",
   "blockedIPs": [],
   "confirmedBots": [],
   "blockchain": [
     {
       "index": 0,
-      "timestamp": 1774569212486,
+      "timestamp": 1774815739993,
       "threats": [],
       "previousHash": "0",
-      "hash": "b011d0c927ec579676f91acd9015941fb4a902e50793d10ed21fc9092cd9ca7c",
+      "hash": "88ff5ea54f762c15ba8109046f3336763a8285e2cf9afd9cc5d51f88ce8f14e6",
       "nonce": 0
     }
   ],
   "stats": {
     "totalRequests": 0,
     "blockedRequests": 0,
-    "uptime": 11.2966813
+    "uptime": 1.2948156
   }
 }

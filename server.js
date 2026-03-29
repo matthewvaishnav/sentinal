@@ -103,9 +103,6 @@ const shutdownManager = new GracefulShutdownManager({
   stateFile: path.join(__dirname, 'data', 'shutdown-state.json')
 });
 
-// Prometheus metrics collector
-const metrics = new MetricsCollector();
-
 // Track in-flight stats
 const liveStats = {
   totalRequests: 0,
@@ -115,6 +112,22 @@ const liveStats = {
   reqPerSecWindow: [],      // timestamps for live req/s calculation
   startTime: Date.now()
 };
+
+// Register components for shutdown state persisting and cleanup
+shutdownManager.registerComponents({
+  server,
+  wss,
+  rateLimiter,
+  contagionGraph,
+  threatLedger,
+  liveStats
+});
+
+// Setup signal handlers
+shutdownManager.setupSignalHandlers();
+
+// Prometheus metrics collector
+const metrics = new MetricsCollector();
 
 // ============================================================
 // WEBSOCKET — Dashboard connections
@@ -447,6 +460,26 @@ app.get('/sentinel/contagion', (req, res) => {
     graphStats: contagionGraph.getGraphStats(),
     clusters: contagionGraph.getClusters(),
     contagionFlags: contagionGraph.getContagionFlags().slice(0, 20),
+  });
+});
+
+// Performance summary
+app.get('/sentinel/performance', async (req, res) => {
+  const now = Date.now();
+  const uptimeSeconds = Math.floor((now - liveStats.startTime) / 1000);
+  const requestRate = liveStats.reqPerSecWindow.length / 5;
+
+  const healthData = await healthCheck.runAllChecks();
+
+  res.json({
+    uptimeSeconds,
+    requestRatePerSec: Number(requestRate.toFixed(2)),
+    blockedIPCount: rateLimiter.getBlockedIPs().length,
+    honeypotHits: honeypots.getStats().totalHits || 0,
+    confirmedBots: contagionGraph.getGraphStats().confirmedBots || 0,
+    activeWebSocketClients: eventBus.getClientCount ? eventBus.getClientCount() : 0,
+    health: healthData,
+    timestamp: now
   });
 });
 
