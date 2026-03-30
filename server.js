@@ -139,12 +139,13 @@ eventBus.on('event', (event) => {
 // --- Background Jobs ---
 
 // Blockchain mining
-setInterval(() => {
+const miningTimer = setInterval(() => {
   threatLedger.mineBlock();
 }, 30000);
+miningTimer.unref?.();
 
 // Metrics collection
-setInterval(async () => {
+const metricsTimer = setInterval(async () => {
   const blockedIPs = await rateLimiter.getBlockedIPs();
   metrics.updateBlockedIPs(blockedIPs.length);
   
@@ -168,6 +169,7 @@ setInterval(async () => {
   
   metrics.updateWebSocketClients(wss.clients.size);
 }, 10000);
+metricsTimer.unref?.();
 
 // --- Startup ---
 

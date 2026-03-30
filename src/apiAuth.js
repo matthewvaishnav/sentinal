@@ -172,6 +172,14 @@ class APIAuthManager {
    */
   middleware() {
     return (req, res, next) => {
+      // Fail closed: admin routes must not be reachable without configured keys.
+      if (this.apiKeys.size === 0) {
+        return res.status(503).json({
+          error: 'Service Unavailable',
+          message: 'Admin endpoints are disabled until SENTINEL_API_KEYS is configured.'
+        });
+      }
+
       const apiKey = req.headers['x-sentinel-api-key'];
       
       // Authenticate

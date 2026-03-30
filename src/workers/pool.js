@@ -23,6 +23,9 @@ class WorkerPool {
 
     for (let i = 0; i < poolSize; i++) {
         const worker = new Worker(workerPath);
+        // Allow the process to exit if these are the only remaining handles.
+        // This is important for test environments and short-lived CLI runs.
+        worker.unref();
         worker.on('message', (msg) => this._handleMessage(msg));
         worker.on('error', (err) => {
           if (!this.isClosing) log.error('MathWorker Error', err);
@@ -66,5 +69,22 @@ class WorkerPool {
 }
 
 // Global Singleton Pool Instance
-const mathPool = new WorkerPool();
-module.exports = mathPool;
+// Lazily created so imports don't spawn workers during unit tests unless needed.
+let _pool = null;
+
+function getPool() {
+  if (!_pool) _pool = new WorkerPool();
+  return _pool;
+}
+
+module.exports = {
+  exec(task, payload) {
+    return getPool().exec(task, payload);
+  },
+  close() {
+    if (!_pool) return Promise.resolve();
+    const p = _pool;
+    _pool = null;
+    return p.close();
+  }
+};

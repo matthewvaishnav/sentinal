@@ -26,7 +26,9 @@ class ChallengeTokenSystem {
     this.solved = new Set();
     this.stats = { issued: 0, solved: 0, failed: 0, expired: 0 };
 
-    setInterval(() => this._cleanup(), 60000);
+    this._cleanupTimer = setInterval(() => this._cleanup(), 60000);
+    // Do not keep the process alive solely due to this timer (tests/CLI).
+    this._cleanupTimer.unref?.();
   }
 
   issue(ip, difficulty = null) {
@@ -138,6 +140,11 @@ class ChallengeTokenSystem {
       const arr = [...this.solved];
       this.solved = new Set(arr.slice(arr.length - 50000));
     }
+  }
+
+  close() {
+    if (this._cleanupTimer) clearInterval(this._cleanupTimer);
+    this._cleanupTimer = null;
   }
 }
 

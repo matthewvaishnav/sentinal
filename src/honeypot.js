@@ -36,7 +36,14 @@ class HoneypotManager {
 
     this._generateTraps();
     // Rotate traps periodically to catch bots that cache path lists
-    setInterval(() => this._rotateTraps(), rotateIntervalMs);
+    this._rotateTimer = setInterval(() => this._rotateTraps(), rotateIntervalMs);
+    // Do not keep the process alive solely due to this timer (tests/CLI).
+    this._rotateTimer.unref?.();
+  }
+
+  close() {
+    if (this._rotateTimer) clearInterval(this._rotateTimer);
+    this._rotateTimer = null;
   }
 
   _generateTraps() {
@@ -47,13 +54,27 @@ class HoneypotManager {
     const obvious = this._generateObvious();    // Known scanner targets
     const custom = this._generateCustom();      // Based on observed behavior
     
-    const allTraps = [...decoys, ...obvious, ...custom];
+    // Ensure at least a small set of high-signal decoys are always included when real routes exist.
+    // This makes behavior predictable for tests and improves coverage against "route-derivative" probing.
+    const guaranteedDecoys = this.realRoutes.length > 0
+      ? [
+          ...this.realRoutes.flatMap(route => [
+            `${route}/admin`,
+            `${route}/internal`,
+            `${route}/debug`,
+          ])
+        ]
+      : [];
+    
+    guaranteedDecoys.forEach(t => this.traps.add(t));
+    
+    const allTraps = [...decoys, ...obvious, ...custom].filter(t => !this.traps.has(t));
     
     // Add traps up to trapCount, prioritizing by effectiveness, and ensuring real application routes are never used as traps
     const sortedTraps = this._prioritizeTraps(allTraps);
     sortedTraps
       .filter(trap => !this.realRoutes.includes(trap))
-      .slice(0, this.trapCount)
+      .slice(0, Math.max(0, this.trapCount - this.traps.size))
       .forEach(trap => this.traps.add(trap));
     
     eventBus.logEvent('INFO', `Generated ${this.traps.size} honeypot traps (${decoys.length} decoys, ${obvious.length} obvious, ${custom.length} custom)`);

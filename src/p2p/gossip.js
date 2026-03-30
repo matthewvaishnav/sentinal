@@ -51,6 +51,8 @@ class GossipManager {
     // Start cleanup and heartbeat
     this.heartbeatInterval = setInterval(() => this._heartbeat(), 30000);
     this.cleanupInterval = setInterval(() => this._cleanupSeen(), 60000);
+    this.heartbeatInterval.unref?.();
+    this.cleanupInterval.unref?.();
 
     // Hook to threat ledger for broadcasting new submissions
     if (this.threatLedger) {
@@ -179,6 +181,10 @@ class GossipManager {
     if (this.cleanupInterval) clearInterval(this.cleanupInterval);
     if (this.wss) this.wss.close();
     this.connections.forEach(ws => ws.close());
+    this.heartbeatInterval = null;
+    this.cleanupInterval = null;
+    this.wss = null;
+    this.connections.clear();
   }
 }
 

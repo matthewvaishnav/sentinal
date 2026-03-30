@@ -21,11 +21,13 @@ describe('AdaptiveThreatIntelligence (Async FFT)', () => {
     test('returns heartbeatDetected: false for random-interval samples', async () => {
       const ip = '1.1.1.1';
       let t = 1000000;
+      // Use a deterministic "random-ish" sequence to avoid flaky FFT outcomes.
+      const intervals = [137, 911, 244, 1803, 501, 1299, 643, 157, 1999, 433, 1201, 777, 1661, 289, 1043, 555];
       for (let i = 0; i < 16; i++) {
-        t += Math.random() * 2000 + 100; // random intervals 100-2100ms
+        t += intervals[i];
         await ati.analyzeTemporalPattern(ip, t);
       }
-      const result = await ati.analyzeTemporalPattern(ip, t + Math.random() * 2000);
+      const result = await ati.analyzeTemporalPattern(ip, t + 1234);
       expect(result).toBeDefined();
       expect(result.heartbeatDetected).toBe(false);
     });

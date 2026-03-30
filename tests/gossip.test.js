@@ -33,6 +33,11 @@ describe('GossipManager', () => {
     gossip2.stop();
   });
 
+  afterAll(async () => {
+    // Give the OS a moment to release ports between tests/runs.
+    await new Promise(resolve => setTimeout(resolve, 50));
+  });
+
   test('nodes should connect to each other', () => {
     // Note: gossip2 connects to gossip1
     expect(gossip2.connections.size).toBeGreaterThanOrEqual(1);

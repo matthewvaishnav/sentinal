@@ -64,6 +64,20 @@ cp .env.example .env
 node server.js
 ```
 
+### Windows (PowerShell) equivalents
+
+```powershell
+# Setup Environment
+Copy-Item .env.example .env
+
+# Start
+node server.js
+```
+
+### Supported Node versions
+
+SENTINEL supports **Node.js 18+** (see `package.json` `engines`).
+
 ### Run Real-World Benchmark
 ```bash
 # Generate mock dataset and execute telemetry validation
