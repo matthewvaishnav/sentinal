@@ -27,6 +27,8 @@
  *    threat map even from isolated observations.
  */
 
+const mathPool = require('./workers/pool');
+
 class AdaptiveThreatIntelligence {
   constructor() {
     // Temporal pattern analysis
@@ -58,7 +60,7 @@ class AdaptiveThreatIntelligence {
    * Detects periodic "heartbeat" patterns in request timing using FFT.
    * Coordinated botnets often have characteristic timing signatures.
    */
-  analyzeTemporalPattern(ip, timestamp) {
+  async analyzeTemporalPattern(ip, timestamp) {
     if (!this.requestTimeSeries.has(ip)) {
       this.requestTimeSeries.set(ip, []);
     }
@@ -78,8 +80,8 @@ class AdaptiveThreatIntelligence {
       intervals.push(series[i] - series[i - 1]);
     }
     
-    // Detect periodicity using autocorrelation
-    const periodicity = this._detectPeriodicity(intervals);
+    // Detect periodicity using Fast Fourier Transform on the worker pool
+    const periodicity = await this._detectPeriodicityFFT(intervals);
     
     if (periodicity.isPeriodic) {
       const existing = this.detectedHeartbeats.get(ip);
@@ -104,32 +106,47 @@ class AdaptiveThreatIntelligence {
     return { heartbeatDetected: false };
   }
 
-  _detectPeriodicity(intervals) {
-    if (intervals.length < 8) return { isPeriodic: false };
+  async _detectPeriodicityFFT(intervals) {
+    if (intervals.length < 16) return { isPeriodic: false };
     
+    // Mean centering for FFT
     const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const variance = intervals.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / intervals.length;
-    const stdDev = Math.sqrt(variance);
+    const centered = intervals.map(x => x - mean);
     
-    // Low coefficient of variation indicates periodicity
-    const cv = stdDev / mean;
+    // Worker Thread FFT execution
+    const amplitudes = await mathPool.exec('fftAmplitude', {
+      realIn: centered,
+      imagIn: new Array(centered.length).fill(0)
+    });
     
-    // Autocorrelation at lag 1
-    let autocorr = 0;
-    for (let i = 0; i < intervals.length - 1; i++) {
-      autocorr += (intervals[i] - mean) * (intervals[i + 1] - mean);
+    // Find dominant frequency (excluding DC component at index 0 which we centered anyway)
+    let maxAmp = 0;
+    let maxIdx = -1;
+    for (let i = 1; i < amplitudes.length; i++) {
+        if (amplitudes[i] > maxAmp) {
+            maxAmp = amplitudes[i];
+            maxIdx = i;
+        }
     }
-    autocorr /= ((intervals.length - 1) * variance);
     
-    const isPeriodic = cv < 0.3 && autocorr > 0.5;
-    const confidence = isPeriodic ? (1 - cv) * autocorr : 0;
+    // Calculate signal-to-noise ratio
+    const avgAmp = amplitudes.reduce((sum, v) => sum + v, 0) / amplitudes.length;
+    const snr = avgAmp > 0 ? maxAmp / avgAmp : 0;
     
+    // If SNR is high, we found a strong heartbeat
+    const isPeriodic = snr > 3.0; // standard deviation threshold
+    const confidence = isPeriodic ? Math.min(1, (snr - 3) / 10) : 0;
+    
+    // Convert FFT index back to time domain (frequency = Hz)
+    // Actually the interval length is fundamental
+    const periodFound = intervals.length / maxIdx; 
+    const frequencyMs = mean * periodFound;
+
     return {
       isPeriodic,
-      frequency: mean,
-      confidence: Math.min(1, confidence),
-      coefficientOfVariation: cv,
-      autocorrelation: autocorr,
+      frequency: frequencyMs,
+      confidence,
+      snr
     };
   }
 

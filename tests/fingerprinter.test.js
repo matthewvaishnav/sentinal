@@ -11,7 +11,7 @@ describe('BehavioralFingerprinter', () => {
   });
   
   describe('record() and getVerdict()', () => {
-    test('identifies obvious bot (low entropy)', () => {
+    test('identifies obvious bot (low entropy)', async () => {
       const botRequest = {
         headers: {
           'user-agent': 'Bot',
@@ -24,7 +24,7 @@ describe('BehavioralFingerprinter', () => {
       
       // Record multiple identical requests
       for (let i = 0; i < 10; i++) {
-        fingerprinter.record('1.2.3.4', botRequest);
+        await fingerprinter.record('1.2.3.4', botRequest);
       }
       
       const verdict = fingerprinter.getVerdict('1.2.3.4');
@@ -32,7 +32,7 @@ describe('BehavioralFingerprinter', () => {
       expect(verdict.score).toBeLessThan(3.0);
     });
     
-    test('identifies human (high entropy)', () => {
+    test('identifies human (high entropy)', async () => {
       const humanRequests = [
         {
           headers: {
@@ -67,17 +67,16 @@ describe('BehavioralFingerprinter', () => {
       ];
       
       // Record varied human-like requests
-      humanRequests.forEach(req => {
-        fingerprinter.record('2.3.4.5', req);
-        // Add some delay between requests
-      });
+      for (const req of humanRequests) {
+        await fingerprinter.record('2.3.4.5', req);
+      }
       
       const verdict = fingerprinter.getVerdict('2.3.4.5');
       expect(verdict.verdict).toBe('human');
       expect(verdict.score).toBeGreaterThan(5.5);
     });
     
-    test('identifies suspect (medium entropy)', () => {
+    test('identifies suspect (medium entropy)', async () => {
       const suspectRequest = {
         headers: {
           'user-agent': 'Python-requests/2.28.0',
@@ -89,7 +88,7 @@ describe('BehavioralFingerprinter', () => {
       };
       
       for (let i = 0; i < 5; i++) {
-        fingerprinter.record('3.4.5.6', suspectRequest);
+        await fingerprinter.record('3.4.5.6', suspectRequest);
       }
       
       const verdict = fingerprinter.getVerdict('3.4.5.6');
@@ -100,9 +99,9 @@ describe('BehavioralFingerprinter', () => {
   });
   
   describe('getAllProfiles()', () => {
-    test('returns all tracked profiles', () => {
-      fingerprinter.record('1.2.3.4', { headers: {}, method: 'GET', path: '/', body: {} });
-      fingerprinter.record('5.6.7.8', { headers: {}, method: 'GET', path: '/', body: {} });
+    test('returns all tracked profiles', async () => {
+      await fingerprinter.record('1.2.3.4', { headers: {}, method: 'GET', path: '/', body: {} });
+      await fingerprinter.record('5.6.7.8', { headers: {}, method: 'GET', path: '/', body: {} });
       
       const profiles = fingerprinter.getAllProfiles();
       expect(profiles.length).toBeGreaterThanOrEqual(2);
@@ -110,29 +109,29 @@ describe('BehavioralFingerprinter', () => {
   });
   
   describe('entropy calculations', () => {
-    test('calculates timing entropy correctly', () => {
+    test('calculates timing entropy correctly', async () => {
       const req = { headers: {}, method: 'GET', path: '/', body: {} };
       
       // Regular intervals (low entropy)
       for (let i = 0; i < 10; i++) {
-        fingerprinter.record('1.2.3.4', req);
+        await fingerprinter.record('1.2.3.4', req);
       }
       
       const profile = fingerprinter.getAllProfiles().find(p => p.ip === '1.2.3.4');
       expect(profile.signals.timingCV).toBeDefined();
     });
     
-    test('calculates path diversity correctly', () => {
+    test('calculates path diversity correctly', async () => {
       const paths = ['/page1', '/page2', '/page3', '/page4', '/page5'];
       
-      paths.forEach(path => {
-        fingerprinter.record('1.2.3.4', {
+      for (const path of paths) {
+        await fingerprinter.record('1.2.3.4', {
           headers: {},
           method: 'GET',
           path,
           body: {}
         });
-      });
+      }
       
       const profile = fingerprinter.getAllProfiles().find(p => p.ip === '1.2.3.4');
       expect(profile.signals.pathDiversity).toBeGreaterThan(0);

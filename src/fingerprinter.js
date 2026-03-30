@@ -21,11 +21,17 @@
  */
 
 class BehavioralFingerprinter {
-  constructor({ botThreshold = 3.0, suspectThreshold = 5.5 } = {}) {
+  constructor({ botThreshold = 3.0, suspectThreshold = 5.5 } = {}, stateAdapter = null) {
     this.botThreshold = botThreshold;
     this.suspectThreshold = suspectThreshold;
+    this.state = stateAdapter;
 
-    // Map<ip, Profile>
+    // Track dynamic global baseline using Exponential Moving Average (EMA)
+    this.emaMean = -1; // Uninitialized
+    this.emaVar = 1.0; 
+    this.alpha = 0.05; // Learning rate
+
+    // Local L1 Cache Map<ip, Profile>
     this.profiles = new Map();
   }
 
@@ -33,9 +39,25 @@ class BehavioralFingerprinter {
    * Record a request and update the profile for this IP.
    * Returns the current profile (including verdict) after recording.
    */
-  record(ip, req) {
+  async record(ip, req) {
     const now = Date.now();
     let profile = this.profiles.get(ip);
+    
+    // Attempt hydration from Redis clustered L2 state if not in L1 local memory
+    if (!profile && this.state && this.state.enabled) {
+      try {
+        const distributedProfile = await this.state.getProfile(ip);
+        if (distributedProfile) {
+          // Rehydrate complex sets
+          distributedProfile.paths = new Set(distributedProfile.paths);
+          distributedProfile.userAgents = new Set(distributedProfile.userAgents);
+          this.profiles.set(ip, distributedProfile);
+          profile = distributedProfile;
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    }
 
     if (!profile) {
       profile = {
@@ -83,7 +105,28 @@ class BehavioralFingerprinter {
     // Only score once we have enough data
     if (profile.requests.length >= 3) {
       profile.score = this._computeScore(profile);
+      
+      // Evolve the global dynamic baseline (EMA)
+      if (this.emaMean === -1) {
+        this.emaMean = profile.score;
+        this.emaVar = 1.0; // Prevents division by zero initially
+      } else {
+        const diff = profile.score - this.emaMean;
+        this.emaMean += this.alpha * diff;
+        this.emaVar = (1 - this.alpha) * (this.emaVar + this.alpha * diff * diff);
+      }
+      
       profile.verdict = this._verdict(profile.score);
+    }
+    
+    // Async Fire-and-Forget Sync back to distributed cluster
+    if (this.state && this.state.enabled) {
+      const serializableProfile = {
+        ...profile,
+        paths: [...profile.paths],
+        userAgents: [...profile.userAgents]
+      };
+      this.state.setProfile(ip, serializableProfile).catch(() => {});
     }
 
     return profile;
@@ -254,7 +297,22 @@ class BehavioralFingerprinter {
 
   _verdict(score) {
     if (score === null) return 'pending';
+    
+    // Absolute floor rules (prevents slow-burn baseline poisoning where the system 'learns' to accept bots)
     if (score < this.botThreshold) return 'bot';
+    
+    if (this.emaMean !== -1) {
+      // Dynamic Baseline Strategy
+      const stdDev = Math.sqrt(this.emaVar) || 1;
+      const zScore = (score - this.emaMean) / stdDev;
+      
+      // Any IP executing behaviors > 2 standard deviations below the site average is flagged severely
+      if (zScore < -2.0) return 'bot';
+      // Between 1 and 2 standard deviations below is highly suspect
+      if (zScore < -1.0) return 'suspect';
+    }
+
+    // Static fallback for suspect edge cases
     if (score < this.suspectThreshold) return 'suspect';
     return 'human';
   }
@@ -279,6 +337,15 @@ class BehavioralFingerprinter {
       .map(p => this._summary(p));
   }
 
+  getBaseline() {
+    return {
+      emaMean: this.emaMean,
+      emaVar: this.emaVar,
+      alpha: this.alpha,
+      stdDev: Math.sqrt(this.emaVar)
+    };
+  }
+
   getProfiles() {
     return [...this.profiles.values()];
   }
@@ -299,6 +366,8 @@ class BehavioralFingerprinter {
       lastSeen: p.lastSeen,
       uniquePaths: p.paths.size,
       uniqueUAs: p.userAgents.size,
+      zScore: this.emaMean !== -1 && p.score !== null ? 
+        (p.score - this.emaMean) / (Math.sqrt(this.emaVar) || 1) : null,
       signals: p.signals || {
         timingCV: null,
         pathDiversity: null,

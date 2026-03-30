@@ -12,7 +12,7 @@
 class IPAllowlist {
   constructor({ allowedIPs = [], allowedCIDRs = [] } = {}) {
     this.allowedIPs = new Set(allowedIPs);
-    this.allowedCIDRs = allowedCIDRs.map(cidr => this._parseCIDR(cidr));
+    this.allowedCIDRs = allowedCIDRs.map(cidr => this._parseCIDR(cidr)).filter(Boolean);
   }
 
   isAllowed(ip) {

@@ -49,9 +49,12 @@ class HoneypotManager {
     
     const allTraps = [...decoys, ...obvious, ...custom];
     
-    // Add traps up to trapCount, prioritizing by effectiveness
+    // Add traps up to trapCount, prioritizing by effectiveness, and ensuring real application routes are never used as traps
     const sortedTraps = this._prioritizeTraps(allTraps);
-    sortedTraps.slice(0, this.trapCount).forEach(trap => this.traps.add(trap));
+    sortedTraps
+      .filter(trap => !this.realRoutes.includes(trap))
+      .slice(0, this.trapCount)
+      .forEach(trap => this.traps.add(trap));
     
     eventBus.logEvent('INFO', `Generated ${this.traps.size} honeypot traps (${decoys.length} decoys, ${obvious.length} obvious, ${custom.length} custom)`);
   }
@@ -319,8 +322,19 @@ class HoneypotManager {
     this.traps.clear();
     keep.forEach(t => this.traps.add(t));
     
-    // Generate new traps to fill remaining slots
-    this._generateTraps();
+    // Generate new traps to fill remaining slots (without clearing existing)
+    const newDecoys = this._generateDecoys();
+    const newObvious = this._generateObvious();
+    const newCustom = this._generateCustom();
+    const allNew = [...newDecoys, ...newObvious, ...newCustom]
+      .filter(t => !this.traps.has(t)); // exclude already-kept traps
+    
+    const sortedNew = this._prioritizeTraps(allNew);
+    const slotsRemaining = this.trapCount - this.traps.size;
+    sortedNew
+      .filter(t => !this.realRoutes.includes(t))
+      .slice(0, slotsRemaining)
+      .forEach(trap => this.traps.add(trap));
     
     this.stats.rotations++;
     eventBus.logEvent('INFO', `Rotated honeypots: kept ${keep.length} effective traps, generated ${this.traps.size - keep.length} new traps`);

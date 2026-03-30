@@ -14,9 +14,11 @@
  */
 
 const crypto = require('crypto');
+const EventEmitter = require('events');
 
-class BlockchainThreatLedger {
+class BlockchainThreatLedger extends EventEmitter {
   constructor({ nodeId = null, consensusThreshold = 0.6 } = {}) {
+    super(); // Initialize EventEmitter
     this.nodeId = nodeId || crypto.randomBytes(8).toString('hex');
     this.consensusThreshold = consensusThreshold;
     
@@ -31,7 +33,7 @@ class BlockchainThreatLedger {
     this.verifiedThreats = new Set();
     
     this.stats = {
-      blocksM: 1,
+      blocksMined: 1,
       threatsShared: 0,
       threatsReceived: 0,
       consensusReached: 0,
@@ -66,6 +68,9 @@ class BlockchainThreatLedger {
     this.pendingThreats.push(threat);
     this.stats.threatsShared++;
     
+    // Emit for P2P Gossip propagation
+    this.emit('broadcast', { type: 'THREAT', payload: threat, sender: this.nodeId });
+    
     return threat;
   }
 
@@ -92,7 +97,10 @@ class BlockchainThreatLedger {
     
     this.chain.push(newBlock);
     this.pendingThreats = [];
-    this.stats.blocksM++;
+    this.stats.blocksMined++;
+    
+    // Emit for P2P Gossip propagation
+    this.emit('broadcast', { type: 'BLOCK', payload: newBlock, sender: this.nodeId });
     
     // Process threats in new block
     for (const threat of newBlock.threats) {
@@ -172,25 +180,40 @@ class BlockchainThreatLedger {
   }
 
   receiveThreat(threat, fromNode) {
-    // Verify signature
-    const expectedSig = this._signThreat(threat.ip, threat.evidence);
+    // Verify signature — recompute using the reporter's nodeId
+    const data = `${threat.ip}${JSON.stringify(threat.evidence)}${fromNode}`;
+    const expectedSig = require('crypto').createHash('sha256').update(data).digest('hex').slice(0, 16);
     
-    // Add to pending (simplified - in production would verify more)
+    if (threat.signature !== expectedSig) {
+      // Signature mismatch — reject and penalize reporter reputation
+      this._updateReputation(fromNode, threat, false);
+      return { accepted: false, reason: 'invalid_signature' };
+    }
+    
+    // Signature valid — add to pending
     this.pendingThreats.push(threat);
     this.stats.threatsReceived++;
     
     // Update node reputation based on threat quality
-    this._updateReputation(fromNode, threat);
+    this._updateReputation(fromNode, threat, true);
+    return { accepted: true };
   }
 
-  _updateReputation(nodeId, threat) {
+  _updateReputation(nodeId, threat, signatureValid = true) {
     const current = this.nodeReputation.get(nodeId) || 0.5;
     
-    // Increase reputation if threat is later verified
-    // Decrease if threat is false positive
-    // (Simplified - would need feedback loop)
+    if (!signatureValid) {
+      // Penalize heavily for invalid signatures (possible spoofing)
+      const newRep = Math.max(0, current - 0.15);
+      this.nodeReputation.set(nodeId, newRep);
+      return;
+    }
     
-    this.nodeReputation.set(nodeId, current);
+    // Reward for valid threat submissions — scaled by severity
+    const severity = threat.evidence?.severity || 1;
+    const reward = 0.02 * Math.min(severity, 5);
+    const newRep = Math.min(1.0, current + reward);
+    this.nodeReputation.set(nodeId, newRep);
   }
 
   isVerifiedThreat(ip) {

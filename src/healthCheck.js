@@ -53,7 +53,7 @@ class HealthCheckSystem {
   async runAllChecks() {
     const checks = {
       memory: this.checkMemory(),
-      rateLimiter: this.checkRateLimiter(),
+      rateLimiter: await this.checkRateLimiter(),
       fingerprinter: this.checkFingerprinter(),
       contagionGraph: this.checkContagionGraph(),
       neuralNetwork: this.checkNeuralNetwork(),
@@ -116,12 +116,12 @@ class HealthCheckSystem {
   /**
    * Check rate limiter health
    */
-  checkRateLimiter() {
+  async checkRateLimiter() {
     if (!this.components.rateLimiter) {
       return { healthy: true, reason: 'Component not registered' };
     }
     
-    const blockedIPs = this.components.rateLimiter.getBlockedIPs();
+    const blockedIPs = await this.components.rateLimiter.getBlockedIPs();
     const blockedCount = blockedIPs.length;
     const healthy = blockedCount < this.thresholds.rateLimiter.maxBlockedIPs;
     

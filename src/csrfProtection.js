@@ -31,7 +31,10 @@ class CSRFProtection {
     this.tokens = new Map(); // token → { created: timestamp, used: count, ip: string }
     
     // Periodic cleanup of expired tokens
-    setInterval(() => this._cleanupExpiredTokens(), 3600000); // Every hour
+    this._cleanupInterval = setInterval(() => this._cleanupExpiredTokens(), 3600000); // Every hour
+    if (this._cleanupInterval && typeof this._cleanupInterval.unref === 'function') {
+      this._cleanupInterval.unref();
+    }
     
     log.info('CSRF protection initialized', {
       component: 'csrf',

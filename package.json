@@ -1,25 +1,30 @@
 {
   "name": "sentinel",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Research-grade anti-DDoS intelligence platform with adaptive threat detection, neural behavior prediction, and decentralized threat sharing",
+  "main": "server.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "start": "node server.js",
+    "test": "npx jest",
+    "test:watch": "npx jest --watch",
+    "test:coverage": "npx jest --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
     "morgan": "^1.10.1",
     "prom-client": "^15.1.0",
     "winston": "^3.19.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {
-    "jest": "^30.3.0"
+    "jest": "^30.3.0",
+    "supertest": "^7.2.2"
   }
 }

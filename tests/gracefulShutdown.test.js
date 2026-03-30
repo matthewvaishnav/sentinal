@@ -25,7 +25,7 @@ describe('GracefulShutdownManager', () => {
   });
 
   test('persists and restores state', async () => {
-    manager.registerComponents({ rateLimiter: { getBlockedIPs: () => ['1.2.3.4'] }, contagionGraph: { confirmedBots: new Set(['1.2.3.5']) }, threatLedger: { exportChain: () => [{ id: 1 }] }, liveStats: { totalRequests: 10, blockedRequests: 2 } });
+    manager.registerComponents({ rateLimiter: { getBlockedIPs: async () => ['1.2.3.4'] }, contagionGraph: { confirmedBots: new Set(['1.2.3.5']) }, threatLedger: { exportChain: () => [{ id: 1 }] }, liveStats: { totalRequests: 10, blockedRequests: 2 } });
     await manager.persistState();
     expect(fs.existsSync(stateFile)).toBe(true);
 

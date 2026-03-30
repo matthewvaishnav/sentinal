@@ -286,7 +286,7 @@ class GracefulShutdownManager {
         timestamp: Date.now(),
         shutdownReason: 'graceful',
         blockedIPs: this.components.rateLimiter ? 
-          this.components.rateLimiter.getBlockedIPs() : [],
+          await this.components.rateLimiter.getBlockedIPs() : [],
         confirmedBots: this.components.contagionGraph ? 
           [...this.components.contagionGraph.confirmedBots] : [],
         blockchain: this.components.threatLedger ? 

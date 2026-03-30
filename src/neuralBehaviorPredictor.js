@@ -1,18 +1,4 @@
-/**
- * NEURAL BEHAVIOR PREDICTION ENGINE
- * ═══════════════════════════════════════════════════════════════
- * 
- * NOVEL CONTRIBUTION: Lightweight neural network that learns
- * attack patterns in real-time without pre-training.
- * 
- * Uses online learning with exponential forgetting to adapt
- * to evolving attack strategies within seconds.
- * 
- * Key innovations:
- * 1. Online gradient descent with no training phase
- * 2. Attention mechanism for temporal dependencies
- * 3. Adversarial robustness through noise injection
- */
+const mathPool = require('./workers/pool');
 
 class NeuralBehaviorPredictor {
   constructor({ inputDim = 7, hiddenDim = 24, learningRate = 0.01 } = {}) {
@@ -43,17 +29,27 @@ class NeuralBehaviorPredictor {
     this.meanHuman = new Array(this.inputDim).fill(0);
   }
 
-  predict(ip, features) {
+  async predict(ip, features) {
     const x = this._normalizeFeatures(features);
-    const hidden = this._relu(this._matmul(x, this.W1).map((v, i) => v + this.b1[i]));
-    let output = this._sigmoid(this._dot(hidden, this.W2.map(w => w[0])) + this.b2[0]);
+    
+    // Offload heavy feedforward matrix operations to background thread
+    const { a2 } = await mathPool.exec('neuralForward', {
+      input: x,
+      W1: this.W1,
+      b1: this.b1,
+      W2: this.W2,
+      b2: this.b2
+    });
 
+    let output = a2[0];
+
+    // Distance-based clustering booster
     if (this.learnedBotCount > 0 && this.learnedHumanCount > 0) {
       const dist = (vector, center) => Math.sqrt(vector.reduce((sum, v, i) => sum + Math.pow(v - center[i], 2), 0));
       const dBot = dist(x, this.meanBot);
       const dHuman = dist(x, this.meanHuman);
       const centroidProb = 1 / (1 + Math.exp(dBot - dHuman));
-      output = 0.5 * output + 0.5 * centroidProb;
+      output = 0.5 * output + 0.5 * centroidProb; // Weighted ensemble voting
     }
 
     const confidence = Math.abs(output - 0.5) * 2;
@@ -70,67 +66,55 @@ class NeuralBehaviorPredictor {
     };
   }
 
-  learn(ip, isBot) {
+  async learn(ip, isBot) {
     const pred = this.predictions.get(ip);
     if (!pred) return;
     
     const target = isBot ? 1 : 0;
     const x = pred.features;
     
-    // Forward pass (save intermediate values for backprop)
-    const z1 = this._matmul(x, this.W1).map((v, i) => v + this.b1[i]);
-    const hidden = this._relu(z1);
-    const z2 = this._dot(hidden, this.W2.map(w => w[0])) + this.b2[0];
-    const output = this._sigmoid(z2);
+    // Pass 1: We must re-run a forward pass to get intermediate cache values for true backprop
+    const { a1, a2 } = await mathPool.exec('neuralForward', {
+      input: x,
+      W1: this.W1,
+      b1: this.b1,
+      W2: this.W2,
+      b2: this.b2
+    });
+
+    // Pass 2: Calculate gradients entirely in background thread to unblock Node loop
+    const deltas = await mathPool.exec('neuralBackward', {
+      input: x,
+      a1, a2,
+      W2: this.W2,
+      target,
+      learningRate: this.learningRate,
+      W1: this.W1,
+      b1: this.b1,
+      b2: this.b2
+    });
     
-    // Backward pass - Output layer
-    const dL_dz2 = output - target;  // Derivative of binary cross-entropy + sigmoid
-    const dL_dW2 = hidden.map(h => h * dL_dz2);
-    const dL_db2 = dL_dz2;
-    
-    // Backward pass - Hidden layer
-    const dL_dhidden = this.W2.map(w => w[0] * dL_dz2);
-    const dL_dz1 = dL_dhidden.map((d, i) => z1[i] > 0 ? d : 0); // ReLU derivative
-    
-    // Compute gradients for W1 and b1
-    const dL_dW1 = [];
-    for (let i = 0; i < this.inputDim; i++) {
-      dL_dW1[i] = [];
-      for (let j = 0; j < this.hiddenDim; j++) {
-        dL_dW1[i][j] = x[i] * dL_dz1[j];
-      }
-    }
-    const dL_db1 = dL_dz1;
-    
-    // Update all weights with gradient descent
-    // Update W1 (input -> hidden)
+    // Apply thread-calculated gradients (Gradient Descent Step)
     for (let i = 0; i < this.inputDim; i++) {
       for (let j = 0; j < this.hiddenDim; j++) {
-        this.W1[i][j] -= this.learningRate * dL_dW1[i][j];
+        this.W1[i][j] += deltas.updateW1[i][j];
       }
     }
-    
-    // Update b1 (hidden layer bias)
     for (let i = 0; i < this.hiddenDim; i++) {
-      this.b1[i] -= this.learningRate * dL_db1[i];
+        this.b1[i] += deltas.updateb1[i];
     }
-    
-    // Update W2 (hidden -> output)
     for (let i = 0; i < this.hiddenDim; i++) {
-      this.W2[i][0] -= this.learningRate * dL_dW2[i];
+      this.W2[i][0] += deltas.updateW2[i][0];
     }
+    this.b2[0] += deltas.updateb2[0];
     
-    // Update b2 (output bias)
-    this.b2[0] -= this.learningRate * dL_db2;
-    
-    // Track accuracy and learned count
+    // Track stats normally
     this.stats.totalLearned++;
-    if ((output > 0.5 && isBot) || (output <= 0.5 && !isBot)) {
+    if ((a2[0] > 0.5 && isBot) || (a2[0] <= 0.5 && !isBot)) {
       this.stats.correct++;
     }
-    this.stats.accuracy = this.stats.correct / (this.stats.totalPredictions || 1);
+    this.stats.accuracy = this.stats.correct / (this.stats.totalLearned || 1);
 
-    // Update learned centroids for boosted separation
     if (isBot) {
       this.learnedBotCount++;
       for (let i = 0; i < x.length; i++) {
@@ -156,22 +140,6 @@ class NeuralBehaviorPredictor {
 
   _randomVector(size) {
     return Array.from({ length: size }, () => (Math.random() - 0.5) * 0.1);
-  }
-
-  _matmul(vec, matrix) {
-    return matrix[0].map((_, j) => vec.reduce((sum, v, i) => sum + v * matrix[i][j], 0));
-  }
-
-  _dot(a, b) {
-    return a.reduce((sum, v, i) => sum + v * b[i], 0);
-  }
-
-  _relu(vec) {
-    return vec.map(v => Math.max(0, v));
-  }
-
-  _sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
   }
 
   getStats() {

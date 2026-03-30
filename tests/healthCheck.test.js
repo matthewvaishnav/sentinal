@@ -3,7 +3,7 @@ const HealthCheckSystem = require('../src/healthCheck');
 describe('HealthCheckSystem', () => {
   test('runAllChecks returns healthy with minimal components', async () => {
     const hc = new HealthCheckSystem({
-      rateLimiter: { getBlockedIPs: () => [] },
+      rateLimiter: { getBlockedIPs: async () => [] },
       fingerprinter: { getProfiles: () => [] },
       contagionGraph: { getGraphStats: () => ({ totalNodes: 0, totalEdges: 0, clusters: 0, confirmedBots: 0 }) },
       neuralPredictor: { getStats: () => ({ predictions: 0, accuracy: 0 }) },
@@ -16,12 +16,12 @@ describe('HealthCheckSystem', () => {
     expect(result.checks.memory.healthy).toBe(true);
   });
 
-  test('rateLimiter health check degrades when blocked IPs exceed threshold', () => {
+  test('rateLimiter health check degrades when blocked IPs exceed threshold', async () => {
     const hc = new HealthCheckSystem({
-      rateLimiter: { getBlockedIPs: () => Array(15000).fill('x') }
+      rateLimiter: { getBlockedIPs: async () => Array(15000).fill('x') }
     });
 
-    const rate = hc.checkRateLimiter();
+    const rate = await hc.checkRateLimiter();
     expect(rate.healthy).toBe(false);
     expect(rate.reason).toBe('Too many blocked IPs');
   });

@@ -5,10 +5,12 @@
  * Broadcasts real-time events to all connected WebSocket dashboard clients.
  */
 
+const EventEmitter = require('events');
 const log = require('./logger');
 
-class EventBus {
+class EventBus extends EventEmitter {
   constructor() {
+    super();
     this.clients = new Set();
     this.recentEvents = []; // Ring buffer, last 200 events
     this.MAX_EVENTS = 200;
@@ -64,6 +66,7 @@ class EventBus {
   }
 
   _record(event) {
+    this.emit('event', event);
     this.recentEvents.push(event);
     if (this.recentEvents.length > this.MAX_EVENTS) {
       this.recentEvents.shift();

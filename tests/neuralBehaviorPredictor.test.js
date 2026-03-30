@@ -1,14 +1,19 @@
 const NeuralBehaviorPredictor = require('../src/neuralBehaviorPredictor');
+const mathPool = require('../src/workers/pool');
 
-describe('NeuralBehaviorPredictor', () => {
+describe('NeuralBehaviorPredictor (Async Distributed Worker)', () => {
   let predictor;
   
   beforeEach(() => {
     predictor = new NeuralBehaviorPredictor();
   });
+
+  afterAll(async () => {
+    await mathPool.close();
+  });
   
   describe('predict()', () => {
-    test('returns prediction for new IP', () => {
+    test('returns prediction for new IP', async () => {
       const features = {
         timingCV: 0.1,
         uaEntropy: 1.0,
@@ -19,7 +24,7 @@ describe('NeuralBehaviorPredictor', () => {
         sizeVariance: 0.2
       };
       
-      const prediction = predictor.predict('1.2.3.4', features);
+      const prediction = await predictor.predict('1.2.3.4', features);
       
       expect(prediction).toHaveProperty('botProbability');
       expect(prediction).toHaveProperty('confidence');
@@ -27,7 +32,7 @@ describe('NeuralBehaviorPredictor', () => {
       expect(prediction.botProbability).toBeLessThanOrEqual(1);
     });
     
-    test('caches predictions', () => {
+    test('caches predictions', async () => {
       const features = {
         timingCV: 0.1,
         uaEntropy: 1.0,
@@ -38,7 +43,7 @@ describe('NeuralBehaviorPredictor', () => {
         sizeVariance: 0.2
       };
       
-      predictor.predict('1.2.3.4', features);
+      await predictor.predict('1.2.3.4', features);
       
       const stats = predictor.getStats();
       expect(stats.totalPredictions).toBe(1);
@@ -46,7 +51,7 @@ describe('NeuralBehaviorPredictor', () => {
   });
   
   describe('learn()', () => {
-    test('updates weights when learning bot', () => {
+    test('updates weights when learning bot', async () => {
       const botFeatures = {
         timingCV: 0.1,
         uaEntropy: 1.0,
@@ -58,16 +63,16 @@ describe('NeuralBehaviorPredictor', () => {
       };
       
       // Make prediction
-      predictor.predict('1.2.3.4', botFeatures);
+      await predictor.predict('1.2.3.4', botFeatures);
       
       // Learn that it's a bot
-      predictor.learn('1.2.3.4', true);
+      await predictor.learn('1.2.3.4', true);
       
       const stats = predictor.getStats();
       expect(stats.totalLearned).toBe(1);
     });
     
-    test('improves accuracy with learning', () => {
+    test('improves accuracy with learning', async () => {
       const botFeatures = {
         timingCV: 0.05,
         uaEntropy: 0.5,
@@ -93,16 +98,16 @@ describe('NeuralBehaviorPredictor', () => {
         const botIP = `1.2.3.${i}`;
         const humanIP = `5.6.7.${i}`;
         
-        predictor.predict(botIP, botFeatures);
-        predictor.learn(botIP, true);
+        await predictor.predict(botIP, botFeatures);
+        await predictor.learn(botIP, true);
         
-        predictor.predict(humanIP, humanFeatures);
-        predictor.learn(humanIP, false);
+        await predictor.predict(humanIP, humanFeatures);
+        await predictor.learn(humanIP, false);
       }
       
       // Test on new examples
-      const botPred = predictor.predict('10.0.0.1', botFeatures);
-      const humanPred = predictor.predict('10.0.0.2', humanFeatures);
+      const botPred = await predictor.predict('10.0.0.1', botFeatures);
+      const humanPred = await predictor.predict('10.0.0.2', humanFeatures);
       
       // Bot should have high probability
       expect(botPred.botProbability).toBeGreaterThan(0.5);
@@ -113,7 +118,7 @@ describe('NeuralBehaviorPredictor', () => {
   });
   
   describe('getStats()', () => {
-    test('tracks prediction statistics', () => {
+    test('tracks prediction statistics', async () => {
       const features = {
         timingCV: 0.5,
         uaEntropy: 3.0,
@@ -124,8 +129,8 @@ describe('NeuralBehaviorPredictor', () => {
         sizeVariance: 1.0
       };
       
-      predictor.predict('1.2.3.4', features);
-      predictor.learn('1.2.3.4', true);
+      await predictor.predict('1.2.3.4', features);
+      await predictor.learn('1.2.3.4', true);
       
       const stats = predictor.getStats();
       
@@ -137,8 +142,8 @@ describe('NeuralBehaviorPredictor', () => {
     });
   });
   
-  describe('full backpropagation', () => {
-    test('updates all layers (W1, b1, W2, b2)', () => {
+  describe('full backpropagation via background thread', () => {
+    test('updates all layers (W1, b1, W2, b2)', async () => {
       const features = {
         timingCV: 0.1,
         uaEntropy: 1.0,
@@ -154,8 +159,8 @@ describe('NeuralBehaviorPredictor', () => {
       const initialb1 = JSON.stringify(predictor.b1);
       
       // Train
-      predictor.predict('1.2.3.4', features);
-      predictor.learn('1.2.3.4', true);
+      await predictor.predict('1.2.3.4', features);
+      await predictor.learn('1.2.3.4', true);
       
       // Weights should have changed
       const finalW1 = JSON.stringify(predictor.W1);
