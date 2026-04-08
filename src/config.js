@@ -39,6 +39,12 @@ const CONFIG = {
   p2p: {
     port: parseInt(process.env.P2P_PORT, 10) || 4000,
     peers: process.env.SENTINEL_PEERS ? process.env.SENTINEL_PEERS.split(',').map(p => p.trim()) : []
+  },
+  security: {
+    trustedProxies: process.env.TRUSTED_PROXIES
+      ? process.env.TRUSTED_PROXIES.split(',').map(s => s.trim()).filter(Boolean)
+      : ['127.0.0.1', '::1', '::ffff:127.0.0.1'],
+    enableCsp: process.env.ENABLE_CSP === 'true'
   }
 };
 

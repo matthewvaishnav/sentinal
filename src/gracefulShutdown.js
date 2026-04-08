@@ -323,6 +323,72 @@ class GracefulShutdownManager {
   async closeResources() {
     log.info('Closing resources', { component: 'shutdown' });
     
+    // Clear background timers
+    if (this.components.miningTimer) {
+      clearInterval(this.components.miningTimer);
+      log.info('Mining timer cleared', { component: 'shutdown' });
+    }
+    if (this.components.metricsTimer) {
+      clearInterval(this.components.metricsTimer);
+      log.info('Metrics timer cleared', { component: 'shutdown' });
+    }
+    
+    // Stop P2P gossip
+    if (this.components.gossip) {
+      try {
+        this.components.gossip.stop();
+        log.info('P2P gossip stopped', { component: 'shutdown' });
+      } catch (error) {
+        log.error('Error stopping gossip', { component: 'shutdown', error: error.message });
+      }
+    }
+    
+    // Stop contagion graph cleanup
+    if (this.components.contagionGraph && this.components.contagionGraph.stop) {
+      this.components.contagionGraph.stop();
+      log.info('Contagion graph stopped', { component: 'shutdown' });
+    }
+    
+    // Stop honeypot rotation timer
+    if (this.components.honeypots && this.components.honeypots.close) {
+      this.components.honeypots.close();
+      log.info('Honeypot manager stopped', { component: 'shutdown' });
+    }
+    
+    // Stop challenge token cleanup timer
+    if (this.components.challenges && this.components.challenges.close) {
+      this.components.challenges.close();
+      log.info('Challenge token system stopped', { component: 'shutdown' });
+    }
+    
+    // Stop CSRF protection cleanup timer
+    if (this.components.csrfProtection) {
+      // CSRFProtection doesn't have a close method, but we can clear its interval manually
+      // This is a workaround until CSRFProtection gets a close() method
+      try {
+        if (this.components.csrfProtection._cleanupInterval) {
+          clearInterval(this.components.csrfProtection._cleanupInterval);
+          this.components.csrfProtection._cleanupInterval = null;
+        }
+        log.info('CSRF protection stopped', { component: 'shutdown' });
+      } catch (error) {
+        log.error('Error stopping CSRF protection', { component: 'shutdown', error: error.message });
+      }
+    }
+    
+    // Save neural model before exit
+    if (this.components.neuralPredictor) {
+      try {
+        await this.components.neuralPredictor.shutdown();
+        log.info('Neural model saved', { component: 'shutdown' });
+      } catch (error) {
+        log.error('Failed to save neural model', {
+          component: 'shutdown',
+          error: error.message
+        });
+      }
+    }
+    
     // Close any open file handles, database connections, etc.
     // Currently SENTINEL is in-memory only, so nothing to close
     

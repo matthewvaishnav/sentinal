@@ -18,6 +18,13 @@ describe('CSRFProtection', () => {
     csrf = new CSRFProtection({ tokenExpiry: 5000 }); // 5s expiry for tests
   });
 
+  afterEach(() => {
+    if (csrf && csrf._cleanupInterval) {
+      clearInterval(csrf._cleanupInterval);
+      csrf._cleanupInterval = null;
+    }
+  });
+
   describe('Token Generation', () => {
     test('generates 64-character hex token', () => {
       const token = csrf.generateToken('127.0.0.1');

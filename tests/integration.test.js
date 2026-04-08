@@ -10,7 +10,7 @@ const request = require('supertest');
 const apiKey = 'test-integration-key';
 process.env.SENTINEL_API_KEYS = apiKey;
 
-const { app, rateLimiter, allowlist, honeypots, fingerprinter } = require('../server');
+const { app, rateLimiter, allowlist, honeypots, fingerprinter, challenges, csrfProtection, contagionGraph } = require('../server');
 
 describe('SENTINEL Integration', () => {
   beforeEach(() => {
@@ -19,6 +19,16 @@ describe('SENTINEL Integration', () => {
     allowlist.allowedIPs.clear();
     allowlist.add('127.0.0.1');
     allowlist.add('::1');
+  });
+  
+  afterAll(() => {
+    // Clean up timers to prevent test leaks
+    if (honeypots && honeypots.close) honeypots.close();
+    if (challenges && challenges.close) challenges.close();
+    if (contagionGraph && contagionGraph.stop) contagionGraph.stop();
+    if (csrfProtection && csrfProtection._cleanupInterval) {
+      clearInterval(csrfProtection._cleanupInterval);
+    }
   });
 
   describe('Public Endpoints', () => {

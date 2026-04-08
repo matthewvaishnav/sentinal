@@ -11,6 +11,10 @@ describe('HoneypotManager', () => {
     });
   });
 
+  afterEach(() => {
+    honeypot.close();
+  });
+
   describe('Trap Generation', () => {
     test('generates the configured number of traps', () => {
       const traps = honeypot.getTrapPaths();

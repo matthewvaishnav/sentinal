@@ -8,6 +8,10 @@ describe('ChallengeTokenSystem', () => {
     cts = new ChallengeTokenSystem({ defaultDifficulty: 1, tokenTTLMs: 5000 });
   });
 
+  afterEach(() => {
+    if (cts) cts.close();
+  });
+
   describe('Issue', () => {
     test('issues challenge with expected fields', () => {
       const result = cts.issue('1.1.1.1');

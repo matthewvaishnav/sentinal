@@ -18,6 +18,7 @@ Start here if you're new to SENTINEL:
 - **[TEST_VALIDATION_REPORT.md](TEST_VALIDATION_REPORT.md)** - Comprehensive test results and coverage analysis
 - **[COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md)** - Comparison vs. Cloudflare, Imperva, Fail2ban, and others
 - **[AWARD_SUBMISSION.md](AWARD_SUBMISSION.md)** - Complete award submission package
+- **[../CHANGELOG.md](../CHANGELOG.md)** - Project changelog with recent improvements and bugfixes
 
 ## Interview & Presentation
 
@@ -40,6 +41,9 @@ Detailed documentation for each major feature:
 - **[summaries/HEALTH_CHECK_SUMMARY.md](summaries/HEALTH_CHECK_SUMMARY.md)** - Kubernetes-ready health endpoints
 - **[summaries/GRACEFUL_SHUTDOWN_SUMMARY.md](summaries/GRACEFUL_SHUTDOWN_SUMMARY.md)** - Signal handling and state persistence
 - **[summaries/PROMETHEUS_METRICS_SUMMARY.md](summaries/PROMETHEUS_METRICS_SUMMARY.md)** - Metrics collection and /metrics endpoint
+
+### Bugfixes & Quality
+- **[summaries/TEST_TIMER_CLEANUP_SUMMARY.md](summaries/TEST_TIMER_CLEANUP_SUMMARY.md)** - Fixed Jest test hangs from timer leaks
 
 ## Implementation Checklists
 

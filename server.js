@@ -63,7 +63,10 @@ const economics = new AttackerEconomicsEngine();
 const adaptiveThreat = new AdaptiveThreatIntelligence();
 const neuralPredictor = new NeuralBehaviorPredictor();
 const apiAuth = new APIAuthManager(CONFIG.apiAuth);
-const csrfProtection = new CSRFProtection();
+const csrfProtection = new CSRFProtection({
+  tokenExpiry: parseInt(process.env.CSRF_TOKEN_EXPIRY, 10) || 86400000,
+  headerName: process.env.CSRF_HEADER_NAME || 'x-csrf-token'
+});
 const healthCheck = new HealthCheckSystem();
 
 // P2P Gossip Networking
@@ -92,7 +95,7 @@ const liveStats = {
 
 // Standard security headers
 app.use(helmet({
-  contentSecurityPolicy: false // Allow inline scripts for demo dashboard
+  contentSecurityPolicy: CONFIG.security?.enableCsp ? undefined : false
 }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -136,44 +139,47 @@ eventBus.on('event', (event) => {
   });
 });
 
-// --- Background Jobs ---
-
-// Blockchain mining
-const miningTimer = setInterval(() => {
-  threatLedger.mineBlock();
-}, 30000);
-miningTimer.unref?.();
-
-// Metrics collection
-const metricsTimer = setInterval(async () => {
-  const blockedIPs = await rateLimiter.getBlockedIPs();
-  metrics.updateBlockedIPs(blockedIPs.length);
-  
-  const bots = fingerprinter.getBots().length;
-  const suspects = fingerprinter.getSuspects().length;
-  const humans = fingerprinter.getAllProfiles().filter(p => p.verdict === 'human').length;
-  metrics.updateProfiles(bots, suspects, humans);
-  
-  metrics.updateActiveTraps(honeypots.getTrapPaths().length);
-  
-  const graphStats = contagionGraph.getGraphStats();
-  metrics.updateContagionGraph(
-    graphStats.totalNodes, graphStats.totalEdges,
-    graphStats.clusters || 0, contagionGraph.confirmedBots.size
-  );
-  
-  const neuralStats = neuralPredictor.getStats();
-  if (neuralStats.accuracy !== undefined) {
-    metrics.updateNeuralAccuracy(neuralStats.accuracy);
-  }
-  
-  metrics.updateWebSocketClients(wss.clients.size);
-}, 10000);
-metricsTimer.unref?.();
-
 // --- Startup ---
 
+let miningTimer = null;
+let metricsTimer = null;
+
 function start() {
+  // Initialize background jobs
+  
+  // Blockchain mining
+  miningTimer = setInterval(() => {
+    threatLedger.mineBlock();
+  }, 30000);
+  miningTimer.unref?.();
+  
+  // Metrics collection
+  metricsTimer = setInterval(async () => {
+    const blockedIPs = await rateLimiter.getBlockedIPs();
+    metrics.updateBlockedIPs(blockedIPs.length);
+    
+    const bots = fingerprinter.getBots().length;
+    const suspects = fingerprinter.getSuspects().length;
+    const humans = fingerprinter.getAllProfiles().filter(p => p.verdict === 'human').length;
+    metrics.updateProfiles(bots, suspects, humans);
+    
+    metrics.updateActiveTraps(honeypots.getTrapPaths().length);
+    
+    const graphStats = contagionGraph.getGraphStats();
+    metrics.updateContagionGraph(
+      graphStats.totalNodes, graphStats.totalEdges,
+      graphStats.clusters || 0, contagionGraph.confirmedBots.size
+    );
+    
+    const neuralStats = neuralPredictor.getStats();
+    if (neuralStats.accuracy !== undefined) {
+      metrics.updateNeuralAccuracy(neuralStats.accuracy);
+    }
+    
+    metrics.updateWebSocketClients(wss.clients.size);
+  }, 10000);
+  metricsTimer.unref?.();
+  
   server.listen(CONFIG.port, () => {
     // Banner
     console.log(`
@@ -189,7 +195,8 @@ function start() {
     // Register for shutdown
     shutdownManager.registerComponents({
       server, wss, rateLimiter, fingerprinter, contagionGraph,
-      neuralPredictor, threatLedger, liveStats, gossip
+      neuralPredictor, threatLedger, liveStats, gossip,
+      miningTimer, metricsTimer, challenges, csrfProtection
     });
     shutdownManager.setupSignalHandlers();
     

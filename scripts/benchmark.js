@@ -1,3 +1,12 @@
+/**
+ * SENTINEL Load Benchmark
+ * 
+ * Measures throughput and latency under load.
+ * Usage: npm run benchmark [-- [target] [duration] [concurrency]]
+ * 
+ * Example: node scripts/benchmark.js http://localhost:3000/ 30 100
+ */
+
 const http = require('http');
 const { URL } = require('url');
 const os = require('os');
@@ -5,6 +14,12 @@ const os = require('os');
 const target = process.argv[2] || 'http://localhost:3000/';
 const durationSec = Number(process.argv[3] || 30);
 const concurrency = Number(process.argv[4] || 50);
+
+console.log(`SENTINEL Load Benchmark`);
+console.log(`Target: ${target}`);
+console.log(`Duration: ${durationSec}s`);
+console.log(`Concurrency: ${concurrency}`);
+console.log(`---`);
 
 const stats = {
   requests: 0,
@@ -64,14 +79,26 @@ async function runBenchmark() {
 
   await round();
 
-  const p99 = 'N/A';
   const avgLatency = stats.requests ? stats.totalLatency / stats.requests : 0;
+  const throughput = durationSec > 0 ? Math.round(stats.successes / durationSec) : 0;
+  const errorRate = stats.requests > 0 ? ((stats.errors / stats.requests) * 100).toFixed(2) : '0.00';
 
-  console.log('benchmark,timestamp,target,durationSec,concurrency,requests,successes,errors,minLatency,maxLatency,avgLatency');
-  console.log(`benchmark,${Date.now()},${target},${durationSec},${concurrency},${stats.requests},${stats.successes},${stats.errors},${stats.minLatency},${stats.maxLatency},${avgLatency.toFixed(2)}`);
-
-  const host = os.hostname();
-  console.log(`Details: host=${host}, p99=${p99}`);
+  console.log('\n=== BENCHMARK RESULTS ===');
+  console.log(`Duration:        ${durationSec}s`);
+  console.log(`Concurrency:       ${concurrency}`);
+  console.log(`Total Requests:    ${stats.requests}`);
+  console.log(`Successful:        ${stats.successes}`);
+  console.log(`Errors:            ${stats.errors} (${errorRate}%)`);
+  console.log(`Throughput:        ${throughput} req/sec`);
+  console.log(`---`);
+  console.log(`Latency (min):     ${stats.minLatency}ms`);
+  console.log(`Latency (avg):     ${avgLatency.toFixed(2)}ms`);
+  console.log(`Latency (max):     ${stats.maxLatency}ms`);
+  console.log('========================\n');
+  
+  // CSV output for automated parsing
+  console.log('benchmark,timestamp,target,durationSec,concurrency,requests,successes,errors,throughput,minLatency,maxLatency,avgLatency');
+  console.log(`benchmark,${Date.now()},${target},${durationSec},${concurrency},${stats.requests},${stats.successes},${stats.errors},${throughput},${stats.minLatency},${stats.maxLatency},${avgLatency.toFixed(2)}`);
 }
 
 runBenchmark().catch((err) => {

@@ -1,12 +1,15 @@
+const fs = require('fs').promises;
+const path = require('path');
 const mathPool = require('./workers/pool');
 
 class NeuralBehaviorPredictor {
-  constructor({ inputDim = 7, hiddenDim = 24, learningRate = 0.01 } = {}) {
+  constructor({ inputDim = 7, hiddenDim = 24, learningRate = 0.01, modelPath = null } = {}) {
     this.inputDim = inputDim;
     this.hiddenDim = hiddenDim;
     this.learningRate = learningRate;
+    this.modelPath = modelPath || path.join(process.cwd(), 'data', 'neural-model.json');
     
-    // Initialize weights randomly
+    // Initialize weights randomly (will be overwritten if model is loaded)
     this.W1 = this._randomMatrix(inputDim, hiddenDim);
     this.b1 = this._randomVector(hiddenDim);
     this.W2 = this._randomMatrix(hiddenDim, 1);
@@ -27,6 +30,72 @@ class NeuralBehaviorPredictor {
     this.learnedHumanCount = 0;
     this.meanBot = new Array(this.inputDim).fill(0);
     this.meanHuman = new Array(this.inputDim).fill(0);
+    
+    // Attempt to load saved model
+    this._loadModel().catch(() => {
+      // Silently fail - will use random initialization
+    });
+  }
+  
+  /**
+   * Save model weights to disk
+   */
+  async saveModel() {
+    try {
+      const modelData = {
+        W1: this.W1,
+        b1: this.b1,
+        W2: this.W2,
+        b2: this.b2,
+        stats: this.stats,
+        learnedBotCount: this.learnedBotCount,
+        learnedHumanCount: this.learnedHumanCount,
+        meanBot: this.meanBot,
+        meanHuman: this.meanHuman,
+        savedAt: Date.now()
+      };
+      
+      // Ensure data directory exists
+      const dir = path.dirname(this.modelPath);
+      await fs.mkdir(dir, { recursive: true });
+      
+      await fs.writeFile(this.modelPath, JSON.stringify(modelData), 'utf8');
+      return true;
+    } catch (err) {
+      console.error('Failed to save neural model:', err.message);
+      return false;
+    }
+  }
+  
+  /**
+   * Load model weights from disk
+   */
+  async _loadModel() {
+    try {
+      const data = await fs.readFile(this.modelPath, 'utf8');
+      const model = JSON.parse(data);
+      
+      // Validate dimensions match
+      if (model.W1?.length === this.inputDim && model.W1[0]?.length === this.hiddenDim) {
+        this.W1 = model.W1;
+        this.b1 = model.b1;
+        this.W2 = model.W2;
+        this.b2 = model.b2;
+        
+        // Restore training stats
+        if (model.stats) this.stats = { ...this.stats, ...model.stats };
+        if (model.learnedBotCount) this.learnedBotCount = model.learnedBotCount;
+        if (model.learnedHumanCount) this.learnedHumanCount = model.learnedHumanCount;
+        if (model.meanBot) this.meanBot = model.meanBot;
+        if (model.meanHuman) this.meanHuman = model.meanHuman;
+        
+        console.log(`Neural model loaded from ${this.modelPath} (trained on ${model.stats?.totalLearned || 0} samples)`);
+        return true;
+      }
+    } catch (err) {
+      // No saved model exists - using random initialization
+    }
+    return false;
   }
 
   async predict(ip, features) {
@@ -144,6 +213,13 @@ class NeuralBehaviorPredictor {
 
   getStats() {
     return this.stats;
+  }
+  
+  /**
+   * Graceful shutdown - saves model before exit
+   */
+  async shutdown() {
+    return this.saveModel();
   }
 }
 

@@ -6,21 +6,15 @@
 
 const log = require('./logger');
 
-// Trusted proxy IPs (Cloudflare, AWS ALB, etc.)
-const TRUSTED_PROXIES = new Set([
-  '127.0.0.1',
-  '::1',
-  '::ffff:127.0.0.1',
-]);
-
 /**
  * Extracts the real client IP, considering trusted proxies.
+ * Uses configurable proxy list from CONFIG.
  */
-function getIP(req) {
+function getIP(req, trustedProxies) {
   const directIP = req.socket?.remoteAddress || req.connection?.remoteAddress || '0.0.0.0';
   
   // Only trust X-Forwarded-For if request comes from a trusted proxy
-  if (TRUSTED_PROXIES.has(directIP)) {
+  if (trustedProxies && trustedProxies.has(directIP)) {
     const xff = req.headers['x-forwarded-for'];
     if (xff) return xff.split(',')[0].trim();
   }
@@ -47,8 +41,11 @@ function createSentinelMiddleware({
   eventBus,
   shutdownManager
 }) {
+  // Initialize trusted proxies from config
+  const trustedProxies = new Set(CONFIG.security?.trustedProxies || ['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+  
   return (req, res, next) => {
-    const ip = getIP(req);
+    const ip = getIP(req, trustedProxies);
     const now = Date.now();
 
     // Track in-flight requests for graceful shutdown
