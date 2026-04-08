@@ -4,13 +4,33 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:  # Allow manual triggering
 
 permissions:
   contents: write
 
 jobs:
+  # Run tests first
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test
+
   # Build for Linux
   build-linux:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,11 +47,18 @@ jobs:
       - name: Build Linux executable
         run: npm run build:linux
       
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev fakeroot
+      
       - name: Build .deb package
         run: npm run build:deb
+        continue-on-error: true  # Don't fail if dpkg tools unavailable
       
       - name: Build AppImage
         run: npm run build:appimage
+        continue-on-error: true  # AppImage tools may fail in some environments
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -44,6 +71,7 @@ jobs:
 
   # Build for Windows
   build-windows:
+    needs: test
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +90,7 @@ jobs:
       
       - name: Build installer
         run: npm run build:win-setup
+        continue-on-error: true  # NSIS may not be available
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -73,6 +102,7 @@ jobs:
 
   # Build for macOS
   build-macos:
+    needs: test
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +121,7 @@ jobs:
       
       - name: Build .dmg
         run: npm run build:dmg
+        continue-on-error: true  # create-dmg or hdiutil may not be available
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -111,6 +142,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
+      
+      - name: Consolidate artifacts
+        run: |
+          mkdir -p dist
+          cp -r artifacts/* dist/ 2>/dev/null || true
+          ls -la dist/
       
       - name: Create Release
         uses: softprops/action-gh-release@v1

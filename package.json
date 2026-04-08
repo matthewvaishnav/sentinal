@@ -36,7 +36,9 @@
     "build:win-setup": "node scripts/build-win-setup.js",
     "build:dmg": "node scripts/build-dmg.js",
     "build:appimage": "node scripts/build-appimage.js",
-    "release": "npm test && npm run build:all && node scripts/create-release.js"
+    "release": "npm test && npm run build:all && node scripts/create-release.js",
+    "release:trigger": "node scripts/trigger-release.js",
+    "release:local": "npm run build:all && node scripts/create-local-release.js"
   },
   "keywords": [],
   "author": "",
