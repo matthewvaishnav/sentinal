@@ -10,15 +10,31 @@
 
 const winston = require('winston');
 const path = require('path');
+const fs = require('fs');
 
 // Log levels: error (0), warn (1), info (2), debug (3)
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
+// Determine logs directory
+// When running as compiled binary (pkg), use cwd/logs instead of snapshot/logs
+const isCompiled = !!process.pkg;
+const logsDir = isCompiled
+  ? path.join(process.cwd(), 'logs')
+  : path.join(__dirname, '..', 'logs');
+
 // Create logs directory if it doesn't exist
-const fs = require('fs');
-const logsDir = path.join(__dirname, '..', 'logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+let logsDirWritable = false;
+try {
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+  // Test if directory is writable
+  fs.accessSync(logsDir, fs.constants.W_OK);
+  logsDirWritable = true;
+} catch (err) {
+  // If we can't create logs dir (e.g., read-only filesystem), 
+  // disable file logging and use console only
+  console.warn(`[Logger] File logging disabled: ${err.message}`);
 }
 
 // Custom format for console output (human-readable)
@@ -43,11 +59,17 @@ const fileFormat = winston.format.combine(
   winston.format.json()
 );
 
-// Create Winston logger
-const logger = winston.createLogger({
-  level: LOG_LEVEL,
-  defaultMeta: { service: 'sentinel' },
-  transports: [
+// Build transports array
+const transports = [
+  // Console output always enabled
+  new winston.transports.Console({
+    format: consoleFormat
+  })
+];
+
+// Add file transports only if directory is writable
+if (logsDirWritable) {
+  transports.push(
     // Error logs (only errors)
     new winston.transports.File({
       filename: path.join(logsDir, 'error.log'),
@@ -63,13 +85,15 @@ const logger = winston.createLogger({
       format: fileFormat,
       maxsize: 10485760, // 10MB
       maxFiles: 5
-    }),
-    
-    // Console output (human-readable)
-    new winston.transports.Console({
-      format: consoleFormat
     })
-  ]
+  );
+}
+
+// Create Winston logger
+const logger = winston.createLogger({
+  level: LOG_LEVEL,
+  defaultMeta: { service: 'sentinel' },
+  transports: transports
 });
 
 // Convenience methods for common log patterns

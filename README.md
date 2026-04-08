@@ -109,18 +109,41 @@ npm start
 
 SENTINEL supports **Node.js 18+** (see `package.json` `engines`).
 
-### Building Installers
+### Automated Releases
 
-To create platform-specific installers from source:
+GitHub Actions automatically builds all platform packages when you push a version tag:
+
+```bash
+# Trigger a new release (patch, minor, or major)
+node scripts/trigger-release.js patch
+
+# Or manually:
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+This creates a GitHub Release with pre-built binaries for:
+- **Windows**: `.exe` installer + portable executable
+- **Linux**: `.deb` package + AppImage + standalone binary  
+- **macOS**: `.dmg` disk image + standalone binary
+
+See [RELEASES.md](./RELEASES.md) for detailed release documentation.
+
+### Building Locally
+
+To build platform packages on your machine:
 
 ```bash
 # Build for all platforms
 npm run build:all
 
-# Create platform packages
-npm run build:deb       # Linux .deb
-npm run build:win-setup  # Windows installer
-npm run build:dmg       # macOS .dmg
+# Or specific platforms:
+npm run build:win       # Windows
+npm run build:linux     # Linux
+npm run build:macos     # macOS
+npm run build:deb       # Linux .deb package
+npm run build:win-setup # Windows installer (requires NSIS)
+npm run build:dmg       # macOS .dmg (requires macOS)
 npm run build:appimage  # Linux AppImage
 ```
 
