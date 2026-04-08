@@ -3,12 +3,40 @@
   "version": "1.0.0",
   "description": "Research-grade anti-DDoS intelligence platform with adaptive threat detection, neural behavior prediction, and decentralized threat sharing",
   "main": "server.js",
+  "bin": "server.js",
+  "pkg": {
+    "scripts": [
+      "server.js",
+      "src/**/*.js"
+    ],
+    "assets": [
+      "public/**/*",
+      "docs/**/*",
+      "data/**/*",
+      ".env.example"
+    ],
+    "targets": [
+      "node18-linux-x64",
+      "node18-win-x64",
+      "node18-macos-x64"
+    ],
+    "outputPath": "dist"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "npx jest",
     "test:watch": "npx jest --watch",
     "test:coverage": "npx jest --coverage",
-    "benchmark": "node scripts/benchmark.js"
+    "benchmark": "node scripts/benchmark.js",
+    "build:all": "npm run build:linux && npm run build:win && npm run build:macos",
+    "build:linux": "npx pkg . --targets node18-linux-x64 --output dist/sentinel-linux-x64",
+    "build:win": "npx pkg . --targets node18-win-x64 --output dist/sentinel-win-x64.exe",
+    "build:macos": "npx pkg . --targets node18-macos-x64 --output dist/sentinel-macos-x64",
+    "build:deb": "node scripts/build-deb.js",
+    "build:win-setup": "node scripts/build-win-setup.js",
+    "build:dmg": "node scripts/build-dmg.js",
+    "build:appimage": "node scripts/build-appimage.js",
+    "release": "npm test && npm run build:all && node scripts/create-release.js"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +56,9 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "app-builder-lib": "^24.13.3",
     "jest": "^30.3.0",
+    "pkg": "^5.8.1",
     "supertest": "^7.2.2"
   }
 }

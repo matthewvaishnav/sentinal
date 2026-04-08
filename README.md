@@ -2,6 +2,25 @@
 
 A **production-grade**, **horizontally scalable** anti-DDoS system featuring multi-threaded background math workers, decentralized threat sharing (P2P), and verified **96% detection accuracy** on real-world datasets.
 
+[![Latest Release](https://img.shields.io/github/v/release/matthewvaishnav/sentinal?style=flat-square)](https://github.com/matthewvaishnav/sentinal/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-159%20passing-brightgreen?style=flat-square)](./docs/TEST_VALIDATION_REPORT.md)
+[![License](https://img.shields.io/badge/license-ISC-blue?style=flat-square)](LICENSE)
+
+---
+
+## 📦 Download & Install
+
+Get the latest pre-built binaries from [GitHub Releases](https://github.com/matthewvaishnav/sentinal/releases/latest):
+
+| Platform | Download | Install |
+|----------|----------|---------|
+| Windows | [Installer](https://github.com/matthewvaishnav/sentinal/releases/latest) | Run `SENTINEL-x.x.x-Setup.exe` |
+| Linux | [.deb](https://github.com/matthewvaishnav/sentinal/releases/latest) | `sudo dpkg -i sentinel_x.x.x_amd64.deb` |
+| Linux | [AppImage](https://github.com/matthewvaishnav/sentinal/releases/latest) | `chmod +x *.AppImage && ./*.AppImage` |
+| macOS | [DMG](https://github.com/matthewvaishnav/sentinal/releases/latest) | Open `.dmg` and drag to Applications |
+
+See [RELEASES.md](./RELEASES.md) for detailed installation instructions.
+
 ---
 
 ## 🔬 Hardened Security Innovation
@@ -52,7 +71,29 @@ Bot Verdict → [Fire-and-Forget Neural Training (MathPool)]
 
 ## 🚀 Quick Start
 
+### Option 1: Pre-built Binary (Recommended)
+
+Download from [GitHub Releases](https://github.com/matthewvaishnav/sentinal/releases/latest):
+
 ```bash
+# Linux (AppImage)
+chmod +x SENTINEL-*.AppImage
+./SENTINEL-*.AppImage
+
+# Windows
+SENTINEL-x.x.x-Setup.exe
+
+# macOS
+open SENTINEL-*.dmg
+```
+
+### Option 2: From Source
+
+```bash
+# Clone repository
+git clone https://github.com/matthewvaishnav/sentinal.git
+cd sentinal
+
 # Install dependencies
 npm install
 
@@ -61,22 +102,27 @@ cp .env.example .env
 # Edit .env with your REDIS_URL and P2P_PORT
 
 # Start the Hardened Sentinel
-node server.js
-```
-
-### Windows (PowerShell) equivalents
-
-```powershell
-# Setup Environment
-Copy-Item .env.example .env
-
-# Start
-node server.js
+npm start
 ```
 
 ### Supported Node versions
 
 SENTINEL supports **Node.js 18+** (see `package.json` `engines`).
+
+### Building Installers
+
+To create platform-specific installers from source:
+
+```bash
+# Build for all platforms
+npm run build:all
+
+# Create platform packages
+npm run build:deb       # Linux .deb
+npm run build:win-setup  # Windows installer
+npm run build:dmg       # macOS .dmg
+npm run build:appimage  # Linux AppImage
+```
 
 ### Run Real-World Benchmark
 ```bash

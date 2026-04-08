@@ -1,0 +1,179 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  # Build for Linux
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Linux executable
+        run: npm run build:linux
+      
+      - name: Build .deb package
+        run: npm run build:deb
+      
+      - name: Build AppImage
+        run: npm run build:appimage
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            dist/sentinel-linux-x64
+            dist/*.deb
+            dist/*.AppImage
+
+  # Build for Windows
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Windows executable
+        run: npm run build:win
+      
+      - name: Build installer
+        run: npm run build:win-setup
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            dist/sentinel-win-x64.exe
+            dist/SENTINEL-*-Setup.exe
+
+  # Build for macOS
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build macOS executable
+        run: npm run build:macos
+      
+      - name: Build .dmg
+        run: npm run build:dmg
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            dist/sentinel-macos-x64
+            dist/*.dmg
+
+  # Create Release
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/linux-artifacts/*
+            artifacts/windows-artifacts/*
+            artifacts/macos-artifacts/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## SENTINEL ${{ github.ref_name }}
+
+            ### Downloads
+
+            #### Windows
+            - `SENTINEL-${{ github.ref_name }}-Setup.exe` - Installer with service setup
+            - `sentinel-win-x64.exe` - Portable executable
+
+            #### Linux
+            - `sentinel_${{ github.ref_name }}_amd64.deb` - Debian/Ubuntu package
+            - `SENTINEL-${{ github.ref_name }}.AppImage` - Universal Linux package
+            - `sentinel-linux-x64` - Standalone executable
+
+            #### macOS
+            - `SENTINEL-${{ github.ref_name }}.dmg` - Disk image with installer
+            - `sentinel-macos-x64` - Standalone executable
+
+            ### Quick Start
+
+            **Windows:**
+            ```powershell
+            # Run installer (adds to PATH and creates service)
+            SENTINEL-x.x.x-Setup.exe
+            
+            # Or run portable version
+            ./sentinel-win-x64.exe
+            ```
+
+            **Linux:**
+            ```bash
+            # Debian/Ubuntu
+            sudo dpkg -i sentinel_x.x.x_amd64.deb
+            sudo systemctl start sentinel
+            
+            # Or AppImage (no install needed)
+            chmod +x SENTINEL-x.x.x.AppImage
+            ./SENTINEL-x.x.x.AppImage
+            ```
+
+            **macOS:**
+            ```bash
+            # Mount DMG and drag to Applications
+            open SENTINEL-x.x.x.dmg
+            
+            # Or run standalone
+            ./sentinel-macos-x64
+            ```
+
+            ### Verification
+
+            All binaries are built from the tagged commit via GitHub Actions.
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
