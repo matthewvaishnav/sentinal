@@ -357,7 +357,10 @@
         <!-- Slide 2: The Problem -->
         <div class="slide" data-slide="1">
             <h2>The Problem</h2>
-            <p>DDoS protection is expensive. Like, really expensive.</p>
+            <h3>What's a DDoS attack?</h3>
+            <p>Imagine 10,000 people calling your phone at once. Your phone crashes. That's DDoS - bots flood your website with fake traffic until it goes offline.</p>
+            
+            <h3 style="margin-top: 40px;">The Real Problem: Protection is Expensive</h3>
             <div class="comparison">
                 <table>
                     <tr>
@@ -393,79 +396,92 @@
         <!-- Slide 3: How It Works -->
         <div class="slide" data-slide="2">
             <h2>How SENTINEL Works</h2>
-            <p>It's Express middleware that analyzes every request through multiple layers:</p>
-            <div class="arch-diagram">
-<span class="layer">Request</span> <span class="arrow">→</span> Extract IP <span class="arrow">→</span> Load State (Redis)
-    <span class="arrow">↓</span>
-<span class="layer">Rate Limiter</span> (sliding window, per-IP quotas)
-    <span class="arrow">↓</span>
-<span class="layer">Behavioral Fingerprinting</span> (Z-score anomaly detection)
-    <span class="arrow">↓</span>
-<span class="layer">Neural Network</span> (learns patterns, runs in worker threads)
-    <span class="arrow">↓</span>
-<span class="layer">Contagion Graph</span> (links coordinated attacks via LSH)
-    <span class="arrow">↓</span>
-<span class="layer">Decision:</span> Allow / Challenge / Block
-            </div>
-            <p>The heavy math runs async in background workers, so your main thread stays responsive.</p>
+            <p>Think of it like airport security with multiple checkpoints. Every visitor goes through layers of inspection:</p>
+            
+            <h3 style="margin-top: 30px;">The Inspection Process</h3>
+            <ul>
+                <li><span class="highlight">Layer 1: Rate Limiting</span> — "You're making 1000 requests per second? That's not human behavior."</li>
+                <li><span class="highlight">Layer 2: Behavioral Analysis</span> — "You visit the same 3 pages in the exact same order every time? Suspicious."</li>
+                <li><span class="highlight">Layer 3: Neural Network</span> — "I've seen 10,000 bots before. Your pattern matches them."</li>
+                <li><span class="highlight">Layer 4: Honeypot Traps</span> — "You clicked a hidden link that no human can see? Gotcha."</li>
+                <li><span class="highlight">Layer 5: Contagion Graph</span> — "You behave exactly like these 50 other IPs we just blocked? You're part of the same botnet."</li>
+            </ul>
+            
+            <p style="margin-top: 30px;">If you pass all checks: you're in. If you fail: you get a challenge (like a CAPTCHA) or get blocked.</p>
+            <p><span class="highlight">The key:</span> All the heavy analysis happens in the background, so your website stays fast (&lt;1ms delay).</p>
         </div>
 
         <!-- Slide 4: Key Features -->
         <div class="slide" data-slide="3">
             <h2>What Makes It Different</h2>
-            <ul>
-                <li><span class="highlight">Self-learning neural network</span> — Trains on your actual traffic, gets smarter over time</li>
-                <li><span class="highlight">Zero-latency design</span> — Heavy computation offloaded to worker threads, &lt;1ms middleware overhead</li>
-                <li><span class="highlight">Horizontally scalable</span> — Redis-backed state means you can run 100+ nodes</li>
-                <li><span class="highlight">Honeypot traps</span> — Hidden links that only bots click, instant ban</li>
-                <li><span class="highlight">P2P threat sharing</span> — Nodes gossip about attacks in real-time via WebSocket</li>
-                <li><span class="highlight">Contagion graphs</span> — Links coordinated bot IPs using LSH clustering</li>
-            </ul>
+            
+            <h3>1. It Learns From Your Traffic</h3>
+            <p>Most systems use fixed rules ("block if >100 requests/min"). SENTINEL watches your actual visitors and learns what "normal" looks like for YOUR site. A news site during breaking news looks different than a blog.</p>
+            
+            <h3 style="margin-top: 30px;">2. It Doesn't Slow You Down</h3>
+            <p>The AI analysis happens in background threads while your website keeps serving pages. Think of it like a security guard reviewing camera footage AFTER you've already walked through the door.</p>
+            
+            <h3 style="margin-top: 30px;">3. It Catches Coordinated Attacks</h3>
+            <p>Modern botnets use thousands of different IP addresses. SENTINEL groups them by behavior: "These 500 IPs all visit the same pages, at the same speed, in the same order. They're working together."</p>
+            
+            <h3 style="margin-top: 30px;">4. It Shares Intelligence</h3>
+            <p>If you run multiple servers, they talk to each other. When Server A blocks an attacker, Server B knows about it instantly. No central database needed.</p>
         </div>
 
         <!-- Slide 5: Results -->
         <div class="slide" data-slide="4">
-            <h2>Real-World Performance</h2>
-            <p>Tested against the CIC-DDoS2019 dataset (real attack traffic from 2019):</p>
+            <h2>Does It Actually Work?</h2>
+            <p>I tested SENTINEL against the CIC-DDoS2019 dataset - real attack traffic captured from actual DDoS attacks in 2019.</p>
             <div class="metrics">
                 <div class="metric-card">
                     <div class="metric-value">96.0%</div>
-                    <div class="metric-label">Detection Accuracy</div>
+                    <div class="metric-label">Caught 96% of bot attacks</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">98.3%</div>
-                    <div class="metric-label">Recall (caught 98% of bots)</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">96.4%</div>
-                    <div class="metric-label">Precision (96% of blocks were correct)</div>
+                    <div class="metric-value">3.6%</div>
+                    <div class="metric-label">Only blocked 3.6% of real humans (false positives)</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-value">&lt;1ms</div>
-                    <div class="metric-label">Middleware Latency</div>
+                    <div class="metric-label">Added delay to each request (imperceptible)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">159</div>
+                    <div class="metric-label">Automated tests (all passing)</div>
                 </div>
             </div>
-            <p>For context: Most commercial solutions aim for 95%+ accuracy but don't publish false positive rates. SENTINEL blocks only 3.6% of legitimate users.</p>
+            
+            <h3 style="margin-top: 40px;">What This Means</h3>
+            <p>Out of 100 bot attacks, SENTINEL stops 96. Out of 100 real humans, it accidentally blocks 3-4 (who can solve a challenge to get through).</p>
+            <p>Most commercial solutions don't publish their false positive rates. The ones that do aim for similar numbers, but charge thousands per month.</p>
         </div>
 
         <!-- Slide 6: Technical Deep Dive -->
         <div class="slide" data-slide="5">
-            <h2>Under the Hood</h2>
-            <div class="code-block">
-<span class="comment">// Neural network architecture</span>
-<span class="keyword">Input Layer:</span> <span class="number">10</span> features (request rate, timing, patterns)
-<span class="keyword">Hidden Layer:</span> <span class="number">8</span> neurons (ReLU activation)
-<span class="keyword">Output Layer:</span> <span class="number">1</span> neuron (sigmoid → bot probability)
-
-<span class="comment">// Training happens async in worker pool</span>
-<span class="keyword">Backpropagation:</span> Stochastic gradient descent
-<span class="keyword">Learning Rate:</span> <span class="number">0.01</span>
-<span class="keyword">Training Frequency:</span> Every <span class="number">100</span> requests
-            </div>
+            <h2>For The Technical Folks</h2>
+            
+            <h3>The Neural Network</h3>
+            <p>A simple 3-layer neural network that learns to recognize bot patterns:</p>
             <ul>
-                <li>Behavioral fingerprinting uses <span class="highlight">exponential moving averages</span> to detect anomalies</li>
-                <li>Contagion graph uses <span class="highlight">LSH (Locality-Sensitive Hashing)</span> to cluster similar IPs</li>
-                <li>P2P gossip protocol shares threat intel across nodes with <span class="highlight">proof-of-threat consensus</span></li>
+                <li>Looks at 10 features: request speed, timing patterns, path diversity, etc.</li>
+                <li>Trains itself every 100 requests using backpropagation</li>
+                <li>Runs in background worker threads so it never blocks your main server</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">The Contagion Graph</h3>
+            <p>Uses LSH (Locality-Sensitive Hashing) to group similar IPs:</p>
+            <ul>
+                <li>Converts each IP's behavior into a "fingerprint"</li>
+                <li>Groups IPs with similar fingerprints (likely same botnet)</li>
+                <li>When one IP is confirmed as a bot, suspicion spreads to its neighbors</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">The P2P Network</h3>
+            <p>Servers share threat intelligence via WebSocket gossip protocol:</p>
+            <ul>
+                <li>No central database - fully decentralized</li>
+                <li>Each node verifies threats before accepting them (proof-of-threat)</li>
+                <li>Threats propagate across the network in milliseconds</li>
             </ul>
         </div>
 
