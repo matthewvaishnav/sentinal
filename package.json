@@ -1,6 +1,6 @@
 {
   "name": "sentinel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Research-grade anti-DDoS intelligence platform with adaptive threat detection, neural behavior prediction, and decentralized threat sharing",
   "main": "server.js",
   "bin": "server.js",
