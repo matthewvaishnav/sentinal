@@ -138,25 +138,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Download all artifacts
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: linux-artifacts
+          path: release-assets
           merge-multiple: true
       
-      - name: Consolidate artifacts
-        run: |
-          mkdir -p dist
-          cp -r artifacts/* dist/ 2>/dev/null || true
-          ls -la dist/
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+          path: release-assets
+          merge-multiple: true
+      
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-artifacts
+          path: release-assets
+          merge-multiple: true
+      
+      - name: List release assets
+        run: ls -la release-assets/
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/linux-artifacts/*
-            artifacts/windows-artifacts/*
-            artifacts/macos-artifacts/*
+          files: release-assets/*
           draft: false
           prerelease: false
           generate_release_notes: true
