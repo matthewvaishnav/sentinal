@@ -48,6 +48,7 @@ function setupSentinelRoutes(app, {
       honeypotHits: honeypots.getStats().totalHits,
       challengeStats: challenges.getStats(),
       uptime,
+      timestamp: now,
     };
   }
 
@@ -274,6 +275,11 @@ function setupSentinelRoutes(app, {
   });
 
   app.get('/dashboard', csrfProtection.injectToken(), (req, res) => {
+    // Prevent caching to ensure users always get the latest version
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const token = req.csrfToken();
     const dashboardPath = path.join(__dirname, '..', 'public', 'dashboard.html');
     

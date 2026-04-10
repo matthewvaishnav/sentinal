@@ -57,7 +57,7 @@ if (fs.existsSync(docsSrc)) {
 const serviceFile = `\
 [Unit]
 Description=SENTINEL Anti-DDoS Protection Platform
-Documentation=https://github.com/matthewvaishnav/sentinal
+Documentation=https://github.com/matthewvaishnav/sentinel
 After=network.target redis.service
 Wants=redis.service
 
@@ -101,7 +101,7 @@ Description: Intelligent Anti-DDoS Protection Platform
  adaptive threat detection, neural behavior prediction, and 
  decentralized threat sharing. Protects websites and APIs from 
  sophisticated bot attacks with zero latency.
-Homepage: https://github.com/matthewvaishnav/sentinal
+Homepage: https://github.com/matthewvaishnav/sentinel
 License: ISC
 `;
 

@@ -1,0 +1,160 @@
+{
+  "name": "UNSW-NB15",
+  "samples": [
+    {
+      "ip": "192.168.1.10",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.998439482000838,
+        "uaEntropy": 0.5782802466264626,
+        "pathDiversity": 0.6059417513811389,
+        "headerCount": 12,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.41898906721990004,
+        "requestSize": 0.02631578947368421
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.11",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.7058655960295449,
+        "uaEntropy": 0.7244448076677346,
+        "pathDiversity": 0.8919644934584456,
+        "headerCount": 12,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.8928672318543103,
+        "requestSize": 0.024561403508771926
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.12",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.22535439110285238,
+        "uaEntropy": 0.14188299996793532,
+        "pathDiversity": 0.22609052237895255,
+        "headerCount": 18,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.2708998704963506,
+        "requestSize": 0
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.13",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.3373275488113739,
+        "uaEntropy": 0.20159939912629116,
+        "pathDiversity": 0.25950286513853243,
+        "headerCount": 11,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.11788550989587293,
+        "requestSize": 0
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.14",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.643803530900696,
+        "uaEntropy": 0.191005289421045,
+        "pathDiversity": 0.7506534949174137,
+        "headerCount": 8,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.17742965554166198,
+        "requestSize": 0
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.15",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.3968460980339735,
+        "uaEntropy": 0.37381403025971605,
+        "pathDiversity": 0.2434467766202438,
+        "headerCount": 14,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.1910277324780225,
+        "requestSize": 0
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.16",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.6055537087885758,
+        "uaEntropy": 0.8057144978363002,
+        "pathDiversity": 0.5107973945885637,
+        "headerCount": 11,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.6524848135413369,
+        "requestSize": 0.02631578947368421
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.17",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.4723749417184358,
+        "uaEntropy": 0.2427380832170159,
+        "pathDiversity": 0.11634613307558639,
+        "headerCount": 12,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.14018248054138968,
+        "requestSize": 0
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.18",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.9557080154895218,
+        "uaEntropy": 0.14681949421225624,
+        "pathDiversity": 0.8126238853429537,
+        "headerCount": 5,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.16097708534984323,
+        "requestSize": 0
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.19",
+      "timestamp": 1775748623309,
+      "features": {
+        "timingCV": 0.33562114946939287,
+        "uaEntropy": 0.10754580032417517,
+        "pathDiversity": 0.19301554930400666,
+        "headerCount": 19,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.24346959877111674,
+        "requestSize": 0
+      },
+      "label": "bot"
+    }
+  ],
+  "metadata": {
+    "totalSamples": 10,
+    "botSamples": 5,
+    "humanSamples": 5,
+    "features": [
+      "timingCV",
+      "uaEntropy",
+      "pathDiversity",
+      "headerCount",
+      "hasAcceptLanguage",
+      "methodVariety",
+      "requestSize"
+    ],
+    "source": "C:\\Users\\matth\\Desktop\\sentinal\\data\\unsw_mock.csv"
+  }
+}

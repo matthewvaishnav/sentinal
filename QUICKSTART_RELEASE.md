@@ -54,7 +54,7 @@ git push origin main --follow-tags
 
 ### Step 4: Watch the Build
 
-1. Go to: `https://github.com/matthewvaishnav/sentinal/actions`
+1. Go to: `https://github.com/matthewvaishnav/sentinel/actions`
 2. You'll see a "Build and Release" workflow running
 3. Wait 3-5 minutes for all platforms to build
 
@@ -67,7 +67,7 @@ git push origin main --follow-tags
 
 ### Step 5: Verify the Release
 
-1. Go to: `https://github.com/matthewvaishnav/sentinal/releases`
+1. Go to: `https://github.com/matthewvaishnav/sentinel/releases`
 2. You should see your new release at the top
 3. Click on it to see all the downloadable assets
 
@@ -165,9 +165,9 @@ npm run release:trigger -- major
 
 ## Need Help?
 
-- Check build logs: https://github.com/matthewvaishnav/sentinal/actions
+- Check build logs: https://github.com/matthewvaishnav/sentinel/actions
 - Read full docs: [RELEASES.md](./RELEASES.md)
-- File an issue: https://github.com/matthewvaishnav/sentinal/issues
+- File an issue: https://github.com/matthewvaishnav/sentinel/issues
 
 ---
 
@@ -176,4 +176,4 @@ npm run release:trigger -- major
 npm run release:trigger -- patch
 ```
 
-Then watch your release appear at: https://github.com/matthewvaishnav/sentinal/releases
+Then watch your release appear at: https://github.com/matthewvaishnav/sentinel/releases

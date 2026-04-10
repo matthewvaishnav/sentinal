@@ -111,7 +111,7 @@ A: Use nssm (Non-Sucking Service Manager):
 
 SUPPORT
 -------
-GitHub: https://github.com/matthewvaishnav/sentinal
+GitHub: https://github.com/matthewvaishnav/sentinel
 Documentation: See docs/ folder in installation directory
 
 LICENSE
@@ -150,7 +150,7 @@ const nsisScript = `
 !define PRODUCT_NAME "SENTINEL"
 !define PRODUCT_VERSION "${version}"
 !define PRODUCT_PUBLISHER "SENTINEL Team"
-!define PRODUCT_WEB_SITE "https://github.com/matthewvaishnav/sentinal"
+!define PRODUCT_WEB_SITE "https://github.com/matthewvaishnav/sentinel"
 !define PRODUCT_DIR_REGKEY "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\sentinel.exe"
 !define PRODUCT_UNINST_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SENTINEL"
 !define PRODUCT_STARTMENU_REGKEY "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MenuStart\\Programs\\SENTINEL"

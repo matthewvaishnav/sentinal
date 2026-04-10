@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Uptime Test</title>
+</head>
+<body>
+    <h1>SENTINEL Uptime Test</h1>
+    <p>Uptime: <span id="uptime-display">Loading...</span></p>
+    <p>Raw Data: <span id="raw-data">Loading...</span></p>
+    <p>Console: Check F12 for debug messages</p>
+
+    <script>
+        console.log('=== UPTIME TEST STARTED ===');
+        
+        function updateUptime() {
+            console.log('Fetching stats...');
+            
+            fetch('/sentinel/stats')
+                .then(r => {
+                    console.log('Response received, status:', r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    console.log('Uptime value:', data.uptime);
+                    
+                    // Update raw data display
+                    document.getElementById('raw-data').textContent = JSON.stringify(data, null, 2);
+                    
+                    // Update uptime display
+                    if (data.uptime) {
+                        const hours = Math.floor(data.uptime / 3600);
+                        const minutes = Math.floor((data.uptime % 3600) / 60);
+                        const seconds = data.uptime % 60;
+                        const uptimeText = `${hours}h ${minutes}m ${seconds}s`;
+                        
+                        console.log('Setting uptime to:', uptimeText);
+                        document.getElementById('uptime-display').textContent = uptimeText;
+                    } else {
+                        console.error('No uptime in data!');
+                        document.getElementById('uptime-display').textContent = 'ERROR: No uptime';
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch error:', err);
+                    document.getElementById('uptime-display').textContent = 'ERROR: ' + err.message;
+                });
+        }
+        
+        // Run immediately
+        console.log('Calling updateUptime() now...');
+        updateUptime();
+        
+        // Then every 5 seconds
+        setInterval(updateUptime, 5000);
+        
+        console.log('=== UPTIME TEST INITIALIZED ===');
+    </script>
+</body>
+</html>

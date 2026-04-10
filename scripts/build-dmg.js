@@ -120,7 +120,7 @@ Installation:
 
 Dashboard: http://localhost:3000/dashboard
 
-Documentation: https://github.com/matthewvaishnav/sentinal
+Documentation: https://github.com/matthewvaishnav/sentinel
 `;
   fs.writeFileSync(path.join(dmgContents, 'README.txt'), readme);
   

@@ -1,0 +1,36 @@
+{
+  "template": "acm",
+  "title": "SENTINEL: Behavioral Contagion Graph for Distributed DDoS Detection",
+  "authors": [
+    {
+      "name": "Author Name",
+      "affiliation": "Institution",
+      "email": "author@institution.edu"
+    }
+  ],
+  "abstract": {
+    "maxWords": 250
+  },
+  "sections": {
+    "introduction": true,
+    "relatedWork": true,
+    "methodology": true,
+    "results": true,
+    "discussion": true,
+    "conclusion": true,
+    "limitations": true,
+    "ethics": true
+  },
+  "bibliography": {
+    "style": "ACM-Reference-Format",
+    "file": "academic/paper/bibliography/references.bib"
+  },
+  "figures": {
+    "format": "pdf",
+    "directory": "academic/paper/figures/"
+  },
+  "output": {
+    "directory": "academic/output/",
+    "filename": "sentinel_paper"
+  }
+}

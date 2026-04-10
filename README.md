@@ -2,7 +2,7 @@
 
 A **production-grade**, **horizontally scalable** anti-DDoS system featuring multi-threaded background math workers, decentralized threat sharing (P2P), and verified **96% detection accuracy** on real-world datasets.
 
-[![Latest Release](https://img.shields.io/github/v/release/matthewvaishnav/sentinal?style=flat-square)](https://github.com/matthewvaishnav/sentinal/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/matthewvaishnav/sentinel?style=flat-square)](https://github.com/matthewvaishnav/sentinel/releases/latest)
 [![Tests](https://img.shields.io/badge/tests-159%20passing-brightgreen?style=flat-square)](./docs/TEST_VALIDATION_REPORT.md)
 [![License](https://img.shields.io/badge/license-ISC-blue?style=flat-square)](LICENSE)
 
@@ -10,14 +10,14 @@ A **production-grade**, **horizontally scalable** anti-DDoS system featuring mul
 
 ## 📦 Download & Install
 
-Get the latest pre-built binaries from [GitHub Releases](https://github.com/matthewvaishnav/sentinal/releases/latest):
+Get the latest pre-built binaries from [GitHub Releases](https://github.com/matthewvaishnav/sentinel/releases/latest):
 
 | Platform | Download | Install |
 |----------|----------|---------|
-| Windows | [Installer](https://github.com/matthewvaishnav/sentinal/releases/latest) | Run `SENTINEL-x.x.x-Setup.exe` |
-| Linux | [.deb](https://github.com/matthewvaishnav/sentinal/releases/latest) | `sudo dpkg -i sentinel_x.x.x_amd64.deb` |
-| Linux | [AppImage](https://github.com/matthewvaishnav/sentinal/releases/latest) | `chmod +x *.AppImage && ./*.AppImage` |
-| macOS | [DMG](https://github.com/matthewvaishnav/sentinal/releases/latest) | Open `.dmg` and drag to Applications |
+| Windows | [Installer](https://github.com/matthewvaishnav/sentinel/releases/latest) | Run `SENTINEL-x.x.x-Setup.exe` |
+| Linux | [.deb](https://github.com/matthewvaishnav/sentinel/releases/latest) | `sudo dpkg -i sentinel_x.x.x_amd64.deb` |
+| Linux | [AppImage](https://github.com/matthewvaishnav/sentinel/releases/latest) | `chmod +x *.AppImage && ./*.AppImage` |
+| macOS | [DMG](https://github.com/matthewvaishnav/sentinel/releases/latest) | Open `.dmg` and drag to Applications |
 
 See [RELEASES.md](./RELEASES.md) for detailed installation instructions.
 
@@ -73,7 +73,7 @@ Bot Verdict → [Fire-and-Forget Neural Training (MathPool)]
 
 ### Option 1: Pre-built Binary (Recommended)
 
-Download from [GitHub Releases](https://github.com/matthewvaishnav/sentinal/releases/latest):
+Download from [GitHub Releases](https://github.com/matthewvaishnav/sentinel/releases/latest):
 
 ```bash
 # Linux (AppImage)
@@ -91,8 +91,8 @@ open SENTINEL-*.dmg
 
 ```bash
 # Clone repository
-git clone https://github.com/matthewvaishnav/sentinal.git
-cd sentinal
+git clone https://github.com/matthewvaishnav/sentinel.git
+cd sentinel
 
 # Install dependencies
 npm install

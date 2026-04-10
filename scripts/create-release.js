@@ -19,7 +19,7 @@ const version = process.argv[2] || pkg.version;
 const tagName = version.startsWith('v') ? version : `v${version}`;
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPOSITORY || 'matthewvaishnav/sentinal';
+const GITHUB_REPO = process.env.GITHUB_REPOSITORY || 'matthewvaishnav/sentinel';
 
 if (!GITHUB_TOKEN) {
   console.error('❌ Error: GITHUB_TOKEN environment variable not set');

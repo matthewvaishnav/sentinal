@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SENTINEL v1.0.3 Setup</title>
+    <hta:application 
+        id="SENTINELSetup"
+        applicationname="SENTINEL Setup"
+        border="dialog"
+        borderstyle="complex"
+        caption="yes"
+        maximizebutton="no"
+        minimizebutton="no"
+        showintaskbar="yes"
+        singleinstance="yes"
+        sysmenu="yes"
+        version="1.0.3"
+        windowstate="normal"
+        innerborder="no"
+        scroll="no"
+        scrollflat="no"
+    />
+    <style>
+        body {
+            font-family: Segoe UI, Tahoma, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            width: 500px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.8;
+        }
+        .content {
+            padding: 30px;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .step h2 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .step p {
+            color: #555;
+            line-height: 1.6;
+        }
+        .buttons {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: right;
+        }
+        button {
+            padding: 10px 24px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .license-text {
+            height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-family: Consolas, monospace;
+            font-size: 11px;
+            background: #f8f9fa;
+            margin: 10px 0;
+        }
+        .progress {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .progress.active {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .complete {
+            text-align: center;
+            padding: 30px;
+        }
+        .complete-icon {
+            font-size: 48px;
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SENTINEL</h1>
+            <p>Version 1.0.3 Setup</p>
+        </div>
+        
+        <!-- Step 1: Welcome -->
+        <div id="step1" class="step active">
+            <div class="content">
+                <h2>Welcome</h2>
+                <p>Welcome to the SENTINEL v1.0.3 Setup Wizard.</p>
+                <p>SENTINEL is an intelligent anti-DDoS protection platform that uses neural AI to protect your web applications from bot attacks.</p>
+                <p>This wizard will guide you through the installation process.</p>
+            </div>
+            <div class="buttons">
+                <button class="btn-secondary" onclick="cancel()">Cancel</button>
+                <button class="btn-primary" onclick="nextStep(2)">Next ></button>
+            </div>
+        </div>
+        
+        <!-- Step 2: License -->
+        <div id="step2" class="step">
+            <div class="content">
+                <h2>License Agreement</h2>
+                <p>Please read the following license agreement carefully:</p>
+                <div class="license-text" id="licenseContent">Loading license...</div>
+                <p>Do you accept the terms of the license agreement?</p>
+            </div>
+            <div class="buttons">
+                <button class="btn-secondary" onclick="cancel()">Cancel</button>
+                <button class="btn-secondary" onclick="nextStep(1)">< Back</button>
+                <button class="btn-primary" onclick="acceptLicense()">I Accept</button>
+            </div>
+        </div>
+        
+        <!-- Step 3: Location -->
+        <div id="step3" class="step">
+            <div class="content">
+                <h2>Installation Location</h2>
+                <p>SENTINEL will be installed to the following folder:</p>
+                <p><strong>C:\Program Files\SENTINEL\</strong></p>
+                <p>To install to this folder, click Next. To install to a different folder, click Browse.</p>
+            </div>
+            <div class="buttons">
+                <button class="btn-secondary" onclick="cancel()">Cancel</button>
+                <button class="btn-secondary" onclick="nextStep(2)">< Back</button>
+                <button class="btn-primary" onclick="install()">Next ></button>
+            </div>
+        </div>
+        
+        <!-- Step 4: Installing -->
+        <div id="step4" class="step">
+            <div class="progress active" id="progressDiv">
+                <div class="spinner"></div>
+                <h2>Installing SENTINEL...</h2>
+                <p>Please wait while the installation completes.</p>
+                <p id="statusText">Preparing installation...</p>
+            </div>
+        </div>
+        
+        <!-- Step 5: Complete -->
+        <div id="step5" class="step">
+            <div class="content complete">
+                <div class="complete-icon">✓</div>
+                <h2>Installation Complete!</h2>
+                <p>SENTINEL v1.0.3 has been successfully installed on your computer.</p>
+                <p><strong>Installation Location:</strong><br>C:\Program Files\SENTINEL\</p>
+                <p><strong>To start SENTINEL:</strong></p>
+                <ol style="text-align: left; display: inline-block;">
+                    <li>Open Command Prompt</li>
+                    <li>Type: <code>sentinel</code></li>
+                    <li>Open browser to: <code>http://localhost:3000/dashboard</code></li>
+                </ol>
+                <p>Start Menu shortcuts have been created.</p>
+            </div>
+            <div class="buttons">
+                <button class="btn-primary" onclick="finish()">Finish</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var shell = new ActiveXObject("WScript.Shell");
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        var installPath = "C:\\Program Files\\SENTINEL\\";
+        
+        // Load license on startup
+        window.onload = function() {
+            try {
+                var scriptPath = document.location.pathname.replace(/%20/g, " ").replace(/^\//, "");
+                var folder = fso.GetParentFolderName(scriptPath);
+                var licenseFile = folder + "\\LICENSE.txt";
+                if (fso.FileExists(licenseFile)) {
+                    var stream = fso.OpenTextFile(licenseFile, 1);
+                    document.getElementById("licenseContent").innerText = stream.ReadAll();
+                    stream.Close();
+                } else {
+                    document.getElementById("licenseContent").innerText = "ISC License\\n\\nCopyright (c) 2024 SENTINEL Team\\n\\nPermission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.";
+                }
+            } catch(e) {
+                document.getElementById("licenseContent").innerText = "License file not found.";
+            }
+        };
+        
+        function nextStep(step) {
+            document.querySelectorAll('.step').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            document.getElementById('step' + step).classList.add('active');
+        }
+        
+        function acceptLicense() {
+            nextStep(3);
+        }
+        
+        function cancel() {
+            window.close();
+        }
+        
+        function finish() {
+            window.close();
+        }
+        
+        function install() {
+            nextStep(4);
+            
+            // Run installation
+            setTimeout(function() {
+                try {
+                    document.getElementById("statusText").innerText = "Creating directories...";
+                    
+                    // Create directories
+                    if (!fso.FolderExists(installPath)) {
+                        fso.CreateFolder(installPath);
+                    }
+                    if (!fso.FolderExists(installPath + "data")) {
+                        fso.CreateFolder(installPath + "data");
+                    }
+                    if (!fso.FolderExists(installPath + "logs")) {
+                        fso.CreateFolder(installPath + "logs");
+                    }
+                    
+                    document.getElementById("statusText").innerText = "Copying files...";
+                    
+                    // Get source path
+                    var scriptPath = document.location.pathname.replace(/%20/g, " ").replace(/^\//, "");
+                    var sourcePath = fso.GetParentFolderName(scriptPath);
+                    
+                    // Copy executable
+                    var exeSource = sourcePath + "\\dist\\sentinel-win-x64.exe";
+                    var exeDest = installPath + "sentinel.exe";
+                    if (fso.FileExists(exeSource)) {
+                        fso.CopyFile(exeSource, exeDest, true);
+                    }
+                    
+                    // Copy docs
+                    if (fso.FileExists(sourcePath + "\\README.txt")) {
+                        fso.CopyFile(sourcePath + "\\README.txt", installPath + "README.txt", true);
+                    }
+                    if (fso.FileExists(sourcePath + "\\LICENSE.txt")) {
+                        fso.CopyFile(sourcePath + "\\LICENSE.txt", installPath + "LICENSE.txt", true);
+                    }
+                    if (fso.FileExists(sourcePath + "\\.env.example")) {
+                        fso.CopyFile(sourcePath + "\\.env.example", installPath + ".env.example", true);
+                    }
+                    
+                    // Copy public folder
+                    var publicSource = sourcePath + "\\public";
+                    var publicDest = installPath + "public";
+                    if (fso.FolderExists(publicSource)) {
+                        if (!fso.FolderExists(publicDest)) {
+                            fso.CreateFolder(publicDest);
+                        }
+                        copyFolder(publicSource, publicDest);
+                    }
+                    
+                    document.getElementById("statusText").innerText = "Creating shortcuts...";
+                    
+                    // Create Start Menu shortcut
+                    var startMenu = shell.SpecialFolders("AllUsersPrograms") + "\\SENTINEL\\";
+                    if (!fso.FolderExists(startMenu)) {
+                        fso.CreateFolder(startMenu);
+                    }
+                    
+                    // Create URL shortcut to dashboard
+                    var urlShortcut = shell.CreateShortcut(startMenu + "SENTINEL Dashboard.url");
+                    urlShortcut.TargetPath = "http://localhost:3000/dashboard";
+                    urlShortcut.Save();
+                    
+                    document.getElementById("statusText").innerText = "Adding to PATH...";
+                    
+                    // Add to PATH
+                    var currentPath = shell.RegRead("HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\Path");
+                    if (currentPath.indexOf(installPath) === -1) {
+                        shell.RegWrite("HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\Path", currentPath + ";" + installPath);
+                    }
+                    
+                    setTimeout(function() {
+                        nextStep(5);
+                    }, 1000);
+                    
+                } catch(e) {
+                    alert("Installation error: " + e.message);
+                    window.close();
+                }
+            }, 100);
+        }
+        
+        function copyFolder(source, destination) {
+            var folder = fso.GetFolder(source);
+            var files = folder.Files;
+            var subfolders = folder.SubFolders;
+            
+            var e = new Enumerator(files);
+            for (; !e.atEnd(); e.moveNext()) {
+                var file = e.item();
+                fso.CopyFile(file.Path, destination + "\\" + file.Name, true);
+            }
+            
+            var f = new Enumerator(subfolders);
+            for (; !f.atEnd(); f.moveNext()) {
+                var subfolder = f.item();
+                var newDest = destination + "\\" + subfolder.Name;
+                if (!fso.FolderExists(newDest)) {
+                    fso.CreateFolder(newDest);
+                }
+                copyFolder(subfolder.Path, newDest);
+            }
+        }
+    </script>
+</body>
+</html>

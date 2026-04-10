@@ -357,6 +357,10 @@
             <span id="uptime-display">UP 4H 12M</span>
         </div>
         <div class="status-pill">
+            <i data-lucide="activity" size="14"></i>
+            <span id="last-update">Updated: just now</span>
+        </div>
+        <div class="status-pill">
             <div class="status-dot active" id="ws-status-dot"></div>
             <span id="ws-status-text">NETWORK LIVE</span>
         </div>
@@ -392,6 +396,15 @@
             </div>
             <div class="stat-value" style="color: var(--danger)" id="s-blocked-ips">0</div>
             <div class="stat-meta" id="s-blocked-req">0 IPs blocked</div>
+            <div class="stat-meta" style="font-size: 0.75rem; color: var(--text-muted)" id="s-block-rate">0% blocked</div>
+        </div>
+        <div class="stat-card glass" style="border-left: 2px solid var(--success)">
+            <div class="stat-header">
+                <span class="stat-label">Allowed Traffic</span>
+                <i data-lucide="check-circle" class="stat-icon" size="18"></i>
+            </div>
+            <div class="stat-value" style="color: var(--success)" id="s-allowed">0</div>
+            <div class="stat-meta" id="s-allowed-rate">0% allowed</div>
         </div>
         <div class="stat-card glass" style="border-left: 2px solid var(--secondary)">
             <div class="stat-header">
@@ -499,20 +512,24 @@
     let evCount = 0;
     const hitPaths = new Set();
     let lastPoll = 0;
+    let serverUptimeSeconds = 0; // Track server uptime from stats
 
     // ── WebSocket Connectivity ──
     let ws;
+    let wsConnected = false;
     function connect() {
         const proto = location.protocol === 'https:' ? 'wss' : 'ws';
         ws = new WebSocket(`${proto}://${location.host}/ws`);
         
         ws.onopen = () => {
+            wsConnected = true;
             document.getElementById('ws-status-dot').classList.add('active');
             document.getElementById('ws-status-text').textContent = 'NETWORK LIVE';
             document.getElementById('ws-status-text').style.color = 'var(--success)';
         };
 
         ws.onclose = () => {
+            wsConnected = false;
             document.getElementById('ws-status-dot').classList.remove('active');
             document.getElementById('ws-status-text').textContent = 'RECONNECTING...';
             document.getElementById('ws-status-text').style.color = 'var(--warning)';
@@ -535,7 +552,7 @@
     function route(msg) {
         switch (msg.type) {
             case 'init':
-                applyStats(msg.data); // Fixed path for new server export
+                applyStats(msg.data);
                 break;
             case 'stats':
                 applyStats(msg);
@@ -559,6 +576,7 @@
     // ── UI Updates ──
     function applyStats(s) {
         if (!s) return;
+        
         set('s-rps', fmt(s.reqPerSec));
         set('rps-badge', `${fmt(s.reqPerSec)} RPS`);
         set('s-total', `${fmtN(s.totalRequests || 0)} total requests`);
@@ -568,7 +586,28 @@
         set('s-suspects', `${s.suspectProfiles || 0} active suspects`);
         set('s-honeypot', s.honeypotHits || 0);
         
-        if (s.uptime !== undefined) set('uptime-display', 'UP ' + fmtUptime(s.uptime).toUpperCase());
+        // Add more detailed stats
+        if (s.allowedRequests !== undefined) {
+            set('s-allowed', s.allowedRequests);
+            const blockRate = s.totalRequests > 0 ? ((s.blockedRequests / s.totalRequests) * 100).toFixed(1) : 0;
+            const allowedRate = s.totalRequests > 0 ? ((s.allowedRequests / s.totalRequests) * 100).toFixed(1) : 0;
+            set('s-block-rate', `${blockRate}% blocked`);
+            set('s-allowed-rate', `${allowedRate}% allowed`);
+        }
+        
+        // Update server uptime from stats - DIRECTLY update the display
+        if (s.uptime !== undefined && s.uptime > 0) {
+            console.log('Updating uptime to:', s.uptime); // DEBUG
+            serverUptimeSeconds = s.uptime;
+            const uptimeText = 'UP ' + fmtUptime(s.uptime).toUpperCase();
+            set('uptime-display', uptimeText);
+        } else {
+            console.warn('No uptime in stats or uptime is 0'); // DEBUG
+        }
+        
+        // Update last update time
+        const now = new Date();
+        set('last-update', 'Updated: ' + now.toLocaleTimeString());
 
         const banner = document.getElementById('attack-banner');
         if ((s.reqPerSec || 0) > 30) {
@@ -608,11 +647,13 @@
     // ── Rich Polling ──
     function pollRich() {
         const now = Date.now();
-        if (now - lastPoll < 4000) return;
+        if (now - lastPoll < 2000) return;
         lastPoll = now;
 
         fetch('/sentinel/stats').then(r => r.json()).then(d => {
             if (d.topSuspects) renderProfiles(d.topSuspects);
+            // Fallback: update stats if WebSocket isn't working
+            if (d.reqPerSec !== undefined) applyStats(d);
         }).catch(() => {});
 
         fetch('/sentinel/economics').then(r => r.json()).then(renderEconomics).catch(() => {});
@@ -663,11 +704,17 @@
     // ── High Performance Sparkline ──
     const canvas = document.getElementById('trafficChart');
     const ctx = canvas.getContext('2d');
+    let lastSparkUpdate = 0;
 
     function pushSpark(val) {
         sparkData.push(val); 
         if (sparkData.length > 61) sparkData.shift();
         drawSpark();
+        lastSparkUpdate = Date.now();
+        
+        // Flash effect on update
+        canvas.style.opacity = '0.8';
+        setTimeout(() => canvas.style.opacity = '1', 100);
     }
 
     function drawSpark() {
@@ -684,9 +731,20 @@
 
         ctx.clearRect(0, 0, W, H);
         
+        // Background grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 5; i++) {
+            const y = (H / 5) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(W, y);
+            ctx.stroke();
+        }
+        
         // Gradient fill
         const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, 'rgba(0, 242, 255, 0.15)');
+        grad.addColorStop(0, 'rgba(0, 242, 255, 0.2)');
         grad.addColorStop(1, 'rgba(0, 242, 255, 0)');
         
         ctx.beginPath();
@@ -696,7 +754,9 @@
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Stroke line
+        // Stroke line with glow
+        ctx.shadowColor = '#00f2ff';
+        ctx.shadowBlur = 10;
         ctx.beginPath();
         sparkData.forEach((v, i) => {
             const y = H - (v / max) * H;
@@ -706,6 +766,15 @@
         ctx.strokeStyle = '#00f2ff';
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        // Current value indicator
+        const lastVal = sparkData[sparkData.length - 1] || 0;
+        const lastY = H - (lastVal / max) * H;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(W - 10, lastY, 4, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     // ── Helpers ──
@@ -722,7 +791,38 @@
     // ── Init ──
     connect();
     window.addEventListener('resize', drawSpark);
-    setInterval(drawSpark, 1000); // Pulse effect
+    setInterval(drawSpark, 500); // More frequent updates for smoother animation
+    
+    // Continuous uptime update every second
+    function updateUptime() {
+        if (serverUptimeSeconds > 0) {
+            const uptimeText = 'UP ' + fmtUptime(serverUptimeSeconds).toUpperCase();
+            set('uptime-display', uptimeText);
+            serverUptimeSeconds++; // Increment for smooth counting
+        } else {
+            set('uptime-display', 'CONNECTING...');
+        }
+    }
+    setInterval(updateUptime, 1000);
+    
+    // Periodic stats poll to ensure updates even without WebSocket traffic
+    function pollStats() {
+        fetch('/sentinel/stats')
+            .then(r => r.json())
+            .then(d => {
+                console.log('Stats received:', { uptime: d.uptime, reqPerSec: d.reqPerSec }); // DEBUG
+                if (d.reqPerSec !== undefined) applyStats(d);
+                pushSpark(d.reqPerSec || 0);
+            })
+            .catch(err => console.error('Stats fetch error:', err));
+    }
+    
+    // Initial fetch immediately on load
+    console.log('Calling pollStats() on page load...'); // DEBUG
+    pollStats();
+    
+    // Then poll every second
+    setInterval(pollStats, 1000);
 </script>
 
 </body>

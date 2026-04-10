@@ -24,7 +24,7 @@
 5. No TODO/FIXME remaining in `src`, `tests`, `docs`.
 
 ## 4. Final delivery package
-- Directory: `sentinal` with project sources.
+- Directory: `sentinel` with project sources.
 - Included docs: `AWRD_SUBMISSION.md`, `EXECUTIVE_SUMMARY.md`, `BENCHMARK_RESULTS.md`, `TEST_VALIDATION_REPORT.md`, `DEPLOYMENT_FINDINGS.md`, `checklists/`.
 - Command to create artifact:
   ```bash

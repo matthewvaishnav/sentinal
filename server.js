@@ -153,7 +153,7 @@ function start() {
   }, 30000);
   miningTimer.unref?.();
   
-  // Metrics collection
+  // Metrics collection and stats broadcasting
   metricsTimer = setInterval(async () => {
     const blockedIPs = await rateLimiter.getBlockedIPs();
     metrics.updateBlockedIPs(blockedIPs.length);
@@ -177,7 +177,16 @@ function start() {
     }
     
     metrics.updateWebSocketClients(wss.clients.size);
-  }, 10000);
+    
+    // Broadcast stats to all connected dashboard clients
+    const stats = await buildStats();
+    const statsMsg = { type: 'stats', ...stats };
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(statsMsg));
+      }
+    });
+  }, 1000);
   metricsTimer.unref?.();
   
   server.listen(CONFIG.port, () => {

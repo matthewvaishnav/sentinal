@@ -1,0 +1,37 @@
+{
+  "seed": {
+    "master": 42,
+    "datasetShuffle": 123,
+    "neuralNetworkInit": 456,
+    "sampling": 789
+  },
+  "docker": {
+    "baseImage": "node:18-bullseye",
+    "includeRedis": true,
+    "includeLatex": true,
+    "workdir": "/app"
+  },
+  "experiments": {
+    "multiDataset": {
+      "enabled": true,
+      "estimatedRuntime": "30 minutes"
+    },
+    "ablation": {
+      "enabled": true,
+      "estimatedRuntime": "45 minutes"
+    },
+    "baseline": {
+      "enabled": true,
+      "estimatedRuntime": "20 minutes"
+    },
+    "statistical": {
+      "enabled": true,
+      "estimatedRuntime": "10 minutes"
+    }
+  },
+  "output": {
+    "directory": "academic/output/experiments/",
+    "format": "json",
+    "includeTimestamps": true
+  }
+}

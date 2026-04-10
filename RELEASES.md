@@ -190,7 +190,7 @@ Or for standalone: `xattr -c ./sentinel-macos-x64`
 
 ## 📊 Download Statistics
 
-Release download counts are available on the [GitHub Releases](https://github.com/matthewvaishnav/sentinal/releases) page.
+Release download counts are available on the [GitHub Releases](https://github.com/matthewvaishnav/sentinel/releases) page.
 
 ## 💡 Contributing
 
@@ -202,6 +202,6 @@ To improve the build system:
 
 ## 🔗 Links
 
-- [Latest Release](https://github.com/matthewvaishnav/sentinal/releases/latest)
-- [All Releases](https://github.com/matthewvaishnav/sentinal/releases)
-- [GitHub Actions](https://github.com/matthewvaishnav/sentinal/actions)
+- [Latest Release](https://github.com/matthewvaishnav/sentinel/releases/latest)
+- [All Releases](https://github.com/matthewvaishnav/sentinel/releases)
+- [GitHub Actions](https://github.com/matthewvaishnav/sentinel/actions)

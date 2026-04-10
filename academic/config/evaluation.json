@@ -1,0 +1,43 @@
+{
+  "testSplit": 0.3,
+  "validationSplit": 0.2,
+  "randomSeed": 42,
+  "metrics": {
+    "classification": [
+      "accuracy",
+      "precision",
+      "recall",
+      "f1Score",
+      "specificity"
+    ],
+    "curves": {
+      "roc": {
+        "enabled": true,
+        "thresholdStep": 0.01
+      },
+      "precisionRecall": {
+        "enabled": true,
+        "thresholdStep": 0.01
+      }
+    }
+  },
+  "statistical": {
+    "confidenceLevel": 0.95,
+    "significanceLevel": 0.05,
+    "multipleComparisonCorrection": "bonferroni"
+  },
+  "ablation": {
+    "components": [
+      "rateLimiter",
+      "fingerprinter",
+      "contagionGraph",
+      "neuralPredictor",
+      "adaptiveThreatIntel"
+    ]
+  },
+  "baselines": [
+    "simpleRateLimit",
+    "staticBlocklist",
+    "thresholdBased"
+  ]
+}

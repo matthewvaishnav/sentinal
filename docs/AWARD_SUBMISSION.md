@@ -87,7 +87,7 @@ SENTINEL represents the next generation of autonomous DDoS defense. It is not ju
 ---
 
 ## Technical Resources
-- **GitHub**: [matthewvaishnav/sentinal]
+- **GitHub**: [matthewvaishnav/sentinel]
 - **Documentation**: [docs/TECHNICAL_DOCUMENTATION.md]
 - **Verification**: [docs/TEST_VALIDATION_REPORT.md]
 - **Scale-Up Roadmap**: [walkthrough.md](../walkthrough.md)

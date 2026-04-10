@@ -1,0 +1,160 @@
+{
+  "name": "CAIDA-DDoS-2007",
+  "samples": [
+    {
+      "ip": "192.168.1.100",
+      "timestamp": 1175568000,
+      "features": {
+        "timingCV": 0.6095222103494358,
+        "uaEntropy": 0.13831034073372006,
+        "pathDiversity": 0.6398957114579417,
+        "headerCount": 5,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.27738997227661866,
+        "requestSize": 0.7945205479452054
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.101",
+      "timestamp": 1175568001,
+      "features": {
+        "timingCV": 0.6409825490159673,
+        "uaEntropy": 0.13849950228130756,
+        "pathDiversity": 0.6476181789186524,
+        "headerCount": 6,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.2997139750653597,
+        "requestSize": 0.7602739726027398
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.102",
+      "timestamp": 1175568002,
+      "features": {
+        "timingCV": 0.6204587258091587,
+        "uaEntropy": 0.7723343198976234,
+        "pathDiversity": 0.5642152424947999,
+        "headerCount": 19,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.6059805766115007,
+        "requestSize": 0.5547945205479452
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.103",
+      "timestamp": 1175568003,
+      "features": {
+        "timingCV": 0.37613945468047993,
+        "uaEntropy": 0.19433729087233442,
+        "pathDiversity": 0.16438787027712504,
+        "headerCount": 3,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.10611817271588778,
+        "requestSize": 0.01643835616438356
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.104",
+      "timestamp": 1175568004,
+      "features": {
+        "timingCV": 0.5390193636085671,
+        "uaEntropy": 0.15670792889194982,
+        "pathDiversity": 0.16826965188747597,
+        "headerCount": 4,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.27656137698285443,
+        "requestSize": 0.01643835616438356
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.105",
+      "timestamp": 1175568005,
+      "features": {
+        "timingCV": 0.5122127853310565,
+        "uaEntropy": 0.1979287168757544,
+        "pathDiversity": 0.31175261486831546,
+        "headerCount": 3,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.23919938592833082,
+        "requestSize": 0.01643835616438356
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.106",
+      "timestamp": 1175568006,
+      "features": {
+        "timingCV": 0.5406044567521631,
+        "uaEntropy": 0.27971908957721126,
+        "pathDiversity": 0.7897653098912647,
+        "headerCount": 7,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.11412198671683534,
+        "requestSize": 0.863013698630137
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.107",
+      "timestamp": 1175568007,
+      "features": {
+        "timingCV": 0.5000784037583572,
+        "uaEntropy": 0.14960347837623938,
+        "pathDiversity": 0.1834622610840378,
+        "headerCount": 3,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.2232418066016506,
+        "requestSize": 0.01643835616438356
+      },
+      "label": "bot"
+    },
+    {
+      "ip": "192.168.1.108",
+      "timestamp": 1175568008,
+      "features": {
+        "timingCV": 0.47031020971303805,
+        "uaEntropy": 0.48962053069869793,
+        "pathDiversity": 0.6576259321290951,
+        "headerCount": 9,
+        "hasAcceptLanguage": true,
+        "methodVariety": 0.7638292739134998,
+        "requestSize": 0.6027397260273972
+      },
+      "label": "human"
+    },
+    {
+      "ip": "192.168.1.109",
+      "timestamp": 1175568009,
+      "features": {
+        "timingCV": 0.5953171743529406,
+        "uaEntropy": 0.2926621876063805,
+        "pathDiversity": 0.32157230156533956,
+        "headerCount": 3,
+        "hasAcceptLanguage": false,
+        "methodVariety": 0.11007061699541026,
+        "requestSize": 0.01643835616438356
+      },
+      "label": "bot"
+    }
+  ],
+  "metadata": {
+    "totalSamples": 10,
+    "botSamples": 5,
+    "humanSamples": 5,
+    "features": [
+      "timingCV",
+      "uaEntropy",
+      "pathDiversity",
+      "headerCount",
+      "hasAcceptLanguage",
+      "methodVariety",
+      "requestSize"
+    ],
+    "source": "C:\\Users\\matth\\Desktop\\sentinal\\data\\caida_mock.csv"
+  }
+}
